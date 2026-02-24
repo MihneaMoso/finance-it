@@ -1,98 +1,122 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+/**
+ * Home Feed Screen — Core of the Finance-IT MVP.
+ *
+ * Features:
+ * - TikTok-style full-screen vertical scrolling with snap-to-item paging
+ * - Each item is a finance question card (MCQ or numeric)
+ * - Questions loaded from QuestionService
+ * - Infinite-feel feed: loads more questions when user approaches the end
+ * - 60fps smooth scrolling, no visible scrollbars
+ *
+ * Feed paging logic:
+ * - Initial batch of 10 questions is loaded on mount
+ * - When the user scrolls past 70% of loaded questions, another batch is appended
+ * - This creates an "infinite scroll" effect without a real backend
+ *
+ * Future extension point: Replace getQuestionBatch() calls with
+ * API requests to a real backend service.
+ */
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { StatusBar } from "expo-status-bar";
+import React, { useCallback, useRef, useState } from "react";
+import { FlatList, StyleSheet, View, useWindowDimensions } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { QuestionCard } from "@/components/QuestionCard";
+import { getQuestionBatch } from "@/services/QuestionService";
+import type { ResolvedQuestion } from "@/types/questions";
+
+/** Number of questions to load per batch */
+const BATCH_SIZE = 10;
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    const { height: windowHeight } = useWindowDimensions();
+    const insets = useSafeAreaInsets();
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+    // Account for safe area top + bottom tab bar (~49px) + safe area bottom
+    const TAB_BAR_HEIGHT = 49;
+    const itemHeight = windowHeight - insets.bottom - TAB_BAR_HEIGHT;
+
+    const [questions, setQuestions] = useState<ResolvedQuestion[]>(() =>
+        getQuestionBatch(BATCH_SIZE),
+    );
+    const isLoadingMore = useRef(false);
+
+    /**
+     * Load more questions when the user scrolls near the end.
+     * Uses a ref flag to prevent concurrent loads.
+     */
+    const handleEndReached = useCallback(() => {
+        if (isLoadingMore.current) return;
+        isLoadingMore.current = true;
+
+        const newBatch = getQuestionBatch(BATCH_SIZE);
+        setQuestions((prev) => [...prev, ...newBatch]);
+        isLoadingMore.current = false;
+    }, []);
+
+    /** Render a single question card at full viewport height */
+    const renderItem = useCallback(
+        ({ item }: { item: ResolvedQuestion }) => (
+            <View style={[styles.cardContainer, { height: itemHeight }]}>
+                <QuestionCard question={item} />
+            </View>
+        ),
+        [itemHeight],
+    );
+
+    /** Stable key extractor using question ID + index for generated questions */
+    const keyExtractor = useCallback(
+        (item: ResolvedQuestion, index: number) => `${item.id}-${index}`,
+        [],
+    );
+
+    /** Optimize FlatList layout calculation since all items are the same height */
+    const getItemLayout = useCallback(
+        (_data: unknown, index: number) => ({
+            length: itemHeight,
+            offset: itemHeight * index,
+            index,
+        }),
+        [itemHeight],
+    );
+
+    return (
+        <View style={styles.screen}>
+            <StatusBar style="light" />
+            <FlatList
+                data={questions}
+                renderItem={renderItem}
+                keyExtractor={keyExtractor}
+                getItemLayout={getItemLayout}
+                // Snap paging behavior (TikTok-style)
+                pagingEnabled
+                snapToInterval={itemHeight}
+                snapToAlignment="start"
+                decelerationRate="fast"
+                // Performance optimizations
+                showsVerticalScrollIndicator={false}
+                removeClippedSubviews
+                maxToRenderPerBatch={3}
+                windowSize={5}
+                initialNumToRender={2}
+                // Infinite scroll: load more when 70% scrolled
+                onEndReached={handleEndReached}
+                onEndReachedThreshold={0.3}
+            />
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+    screen: {
+        flex: 1,
+        backgroundColor: "#0f1115",
+    },
+    cardContainer: {
+        width: "100%",
+        justifyContent: "center",
+        paddingTop: 20,
+        paddingBottom: 20,
+    },
 });

@@ -140,7 +140,7 @@ export default function Page() {
             <ThemedText type="title" style={styles.title}>
                 Sign in
             </ThemedText>
-            <ThemedText style={styles.label}>Email address</ThemedText>
+            <ThemedText style={styles.label}>Email address or username</ThemedText>
             <TextInput
                 style={styles.input}
                 autoCapitalize="none"

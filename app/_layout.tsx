@@ -15,6 +15,14 @@ export const unstable_settings = {
     anchor: "(tabs)",
 };
 
+const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+if (!publishableKey) {
+    throw new Error(
+        "Missing EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in environment variables",
+    );
+}
+
 export default function RootLayout() {
     const colorScheme = useColorScheme();
 
@@ -22,7 +30,10 @@ export default function RootLayout() {
         <ThemeProvider
             value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
         >
-            <ClerkProvider tokenCache={tokenCache}>
+            <ClerkProvider
+                publishableKey={publishableKey}
+                tokenCache={tokenCache}
+            >
                 <Stack>
                     <Stack.Screen
                         name="(tabs)"

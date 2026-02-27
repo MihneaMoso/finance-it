@@ -1,12 +1,13 @@
 import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
+    DarkTheme,
+    DefaultTheme,
+    ThemeProvider,
 } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { Platform } from "react-native";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -26,6 +27,10 @@ if (!publishableKey) {
 export default function RootLayout() {
     const colorScheme = useColorScheme();
 
+    if (Platform.OS === "web") {
+        document.title = "Finance-IT";
+    }
+
     return (
         <ThemeProvider
             value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
@@ -37,11 +42,11 @@ export default function RootLayout() {
                 <Stack>
                     <Stack.Screen
                         name="(tabs)"
-                        options={{ headerShown: false }}
+                        options={{ headerShown: false, title: "Home" }}
                     />
                     <Stack.Screen
                         name="(auth)"
-                        options={{ headerShown: false }}
+                        options={{ headerShown: false, title: "Account" }}
                     />
                     <Stack.Screen
                         name="modal"

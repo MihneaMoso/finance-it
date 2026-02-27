@@ -5,15 +5,10 @@ on:
         branches: ["master"]
 
 jobs:
-    export_web:
-        name: Export web
-        type: build
-        params:
-            platform: web
-
     deploy_web:
-        name: Deploy web
-        needs: [export_web]
+        name: Export and Deploy web
         type: deploy
+        environment:
+            name: production
         params:
             prod: true

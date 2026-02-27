@@ -1,12 +1,19 @@
 name: Deploy web
 
 on:
-  push:
-    branches: ['main']
+    push:
+        branches: ["master"]
 
 jobs:
-  deploy_web:
-    name: Deploy web
-    type: deploy
-    params:
-      prod: true
+    export_web:
+        name: Export web
+        type: build
+        params:
+            platform: web
+
+    deploy_web:
+        name: Deploy web
+        needs: [export_web]
+        type: deploy
+        params:
+            prod: true

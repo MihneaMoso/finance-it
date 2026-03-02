@@ -3,21 +3,32 @@
  *
  * Responsibilities:
  * - Serve questions to the home feed
- * - Randomly select between MCQ (60%) and numeric (40%) questions
+ * - Bias question selection based on the user's learning profile (mistake-driven)
  * - Generate numeric questions with randomized parameters
  * - Prevent immediate repeats
+ *
+ * Mistake-Driven Algorithm:
+ * - Concepts with high error rates are weighted higher
+ * - Concepts not seen recently get a recency boost
+ * - Difficulty increases after 3+ consecutive correct answers on same concept
+ * - Mistaken concepts are reintroduced within 5–10 questions
  *
  * Future extension point: Replace this with a real API client
  * that fetches questions from a backend service.
  */
 
 import type {
+    ConceptID,
+    Difficulty,
     GeneratedQuestionTemplate,
     MCQQuestion,
     ResolvedQuestion,
+    UserLearningProfile,
 } from "@/types/questions";
 
-// ─── Static MCQ Question Pool (at least 10) ─────────────────────────────────
+import { getProfile } from "@/services/LearningProfileService";
+
+// ─── Static MCQ Question Pool ────────────────────────────────────────────────
 
 const MCQ_POOL: MCQQuestion[] = [
     {
@@ -32,6 +43,8 @@ const MCQ_POOL: MCQQuestion[] = [
             "They become volatile",
         ],
         correctIndex: 1,
+        conceptId: "interest_rates",
+        difficulty: "medium",
     },
     {
         id: "mcq-2",
@@ -44,6 +57,8 @@ const MCQ_POOL: MCQQuestion[] = [
             "Transaction costs",
         ],
         correctIndex: 1,
+        conceptId: "risk_diversification",
+        difficulty: "easy",
     },
     {
         id: "mcq-3",
@@ -57,6 +72,8 @@ const MCQ_POOL: MCQQuestion[] = [
             "Statement of Equity",
         ],
         correctIndex: 2,
+        conceptId: "financial_statements",
+        difficulty: "easy",
     },
     {
         id: "mcq-4",
@@ -69,6 +86,8 @@ const MCQ_POOL: MCQQuestion[] = [
             "Tax deductions",
         ],
         correctIndex: 0,
+        conceptId: "rule_of_72",
+        difficulty: "easy",
     },
     {
         id: "mcq-5",
@@ -76,6 +95,8 @@ const MCQ_POOL: MCQQuestion[] = [
         question: "A P/E ratio compares a stock's price to its:",
         options: ["Revenue", "Earnings per share", "Dividends", "Book value"],
         correctIndex: 1,
+        conceptId: "stock_valuation",
+        difficulty: "medium",
     },
     {
         id: "mcq-6",
@@ -89,6 +110,8 @@ const MCQ_POOL: MCQQuestion[] = [
             "Private equity fund",
         ],
         correctIndex: 2,
+        conceptId: "investment_funds",
+        difficulty: "easy",
     },
     {
         id: "mcq-7",
@@ -101,6 +124,8 @@ const MCQ_POOL: MCQQuestion[] = [
             "Gross Demand Profit",
         ],
         correctIndex: 0,
+        conceptId: "macroeconomics",
+        difficulty: "easy",
     },
     {
         id: "mcq-8",
@@ -113,6 +138,8 @@ const MCQ_POOL: MCQQuestion[] = [
             "A market with low trading volume",
         ],
         correctIndex: 1,
+        conceptId: "market_cycles",
+        difficulty: "easy",
     },
     {
         id: "mcq-9",
@@ -125,6 +152,8 @@ const MCQ_POOL: MCQQuestion[] = [
             "Cryptocurrency",
         ],
         correctIndex: 2,
+        conceptId: "risk_diversification",
+        difficulty: "easy",
     },
     {
         id: "mcq-10",
@@ -137,6 +166,8 @@ const MCQ_POOL: MCQQuestion[] = [
             "Applies only to savings accounts",
         ],
         correctIndex: 2,
+        conceptId: "compound_interest",
+        difficulty: "easy",
     },
     {
         id: "mcq-11",
@@ -149,6 +180,8 @@ const MCQ_POOL: MCQQuestion[] = [
             "Estimated Tax Filing",
         ],
         correctIndex: 1,
+        conceptId: "investment_funds",
+        difficulty: "easy",
     },
     {
         id: "mcq-12",
@@ -161,6 +194,8 @@ const MCQ_POOL: MCQQuestion[] = [
             "Fluctuate randomly",
         ],
         correctIndex: 1,
+        conceptId: "inflation",
+        difficulty: "easy",
     },
 ];
 
@@ -181,15 +216,17 @@ const NUMERIC_TEMPLATES: GeneratedQuestionTemplate[] = [
         id: "num-compound-interest",
         type: "numeric",
         template: "Compound interest calculation",
+        conceptId: "compound_interest",
+        difficulty: "medium",
         generator: () => {
-            const principal = randInt(1, 50) * 1000; // $1,000 – $50,000
-            const rate = randInt(2, 12); // 2% – 12%
+            const principal = randInt(1, 50) * 1000;
+            const rate = randInt(2, 12);
             const years = randInt(1, 10);
             const answer = round2(principal * Math.pow(1 + rate / 100, years));
             return {
                 questionText: `You invest $${principal.toLocaleString()} at ${rate}% annual compound interest. How much will you have after ${years} year${years > 1 ? "s" : ""}?`,
                 correctAnswer: answer,
-                tolerance: answer * 0.01, // ±1%
+                tolerance: answer * 0.01,
             };
         },
     },
@@ -197,6 +234,8 @@ const NUMERIC_TEMPLATES: GeneratedQuestionTemplate[] = [
         id: "num-simple-interest",
         type: "numeric",
         template: "Simple interest calculation",
+        conceptId: "simple_interest",
+        difficulty: "easy",
         generator: () => {
             const principal = randInt(1, 20) * 1000;
             const rate = randInt(3, 10);
@@ -214,13 +253,15 @@ const NUMERIC_TEMPLATES: GeneratedQuestionTemplate[] = [
         id: "num-rule-of-72",
         type: "numeric",
         template: "Rule of 72 estimation",
+        conceptId: "rule_of_72",
+        difficulty: "easy",
         generator: () => {
             const rate = randInt(2, 12);
             const answer = round2(72 / rate);
             return {
                 questionText: `Using the Rule of 72, approximately how many years will it take to double your money at a ${rate}% annual return? (Round to the nearest whole number)`,
                 correctAnswer: Math.round(answer),
-                tolerance: 1, // Accept ±1 year
+                tolerance: 1,
             };
         },
     },
@@ -228,12 +269,14 @@ const NUMERIC_TEMPLATES: GeneratedQuestionTemplate[] = [
         id: "num-future-value-annuity",
         type: "numeric",
         template: "Future value of monthly savings",
+        conceptId: "future_value",
+        difficulty: "hard",
         generator: () => {
-            const monthly = randInt(1, 10) * 100; // $100 – $1,000
-            const rate = randInt(4, 10); // annual rate
+            const monthly = randInt(1, 10) * 100;
+            const rate = randInt(4, 10);
             const years = randInt(2, 10);
-            const r = rate / 100 / 12; // monthly rate
-            const n = years * 12; // total months
+            const r = rate / 100 / 12;
+            const n = years * 12;
             const fv = round2(monthly * ((Math.pow(1 + r, n) - 1) / r));
             return {
                 questionText: `You save $${monthly} per month for ${years} years at ${rate}% annual interest (compounded monthly). What is the total future value?`,
@@ -244,53 +287,217 @@ const NUMERIC_TEMPLATES: GeneratedQuestionTemplate[] = [
     },
 ];
 
+// ─── All Questions Pool (for scoring) ────────────────────────────────────────
+
+type ScoredQuestion = {
+    resolve: () => ResolvedQuestion;
+    conceptId: ConceptID;
+    difficulty: Difficulty;
+};
+
+/** Build a combined pool of all available questions for scoring */
+function getAllQuestions(): ScoredQuestion[] {
+    const pool: ScoredQuestion[] = [];
+
+    for (const mcq of MCQ_POOL) {
+        pool.push({
+            resolve: () => ({ ...mcq }),
+            conceptId: mcq.conceptId,
+            difficulty: mcq.difficulty,
+        });
+    }
+
+    for (const template of NUMERIC_TEMPLATES) {
+        pool.push({
+            resolve: () => {
+                const generated = template.generator();
+                return {
+                    id: `${template.id}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                    type: "numeric" as const,
+                    questionText: generated.questionText,
+                    correctAnswer: generated.correctAnswer,
+                    tolerance:
+                        generated.tolerance ?? generated.correctAnswer * 0.01,
+                    conceptId: template.conceptId,
+                    difficulty: template.difficulty,
+                };
+            },
+            conceptId: template.conceptId,
+            difficulty: template.difficulty,
+        });
+    }
+
+    return pool;
+}
+
+// ─── Mistake-Driven Scoring ──────────────────────────────────────────────────
+
+/** Weight constants for the scoring function */
+const WEIGHTS = {
+    MISTAKE: 3.0,
+    RECENCY: 1.5,
+    DIFFICULTY_ADJUSTMENT: 1.0,
+    UNSEEN: 2.0,
+    BASE_RANDOM: 0.5,
+};
+
+/**
+ * Scores a question based on the user's learning profile.
+ *
+ * score = mistakeWeight + recencyWeight + difficultyAdjustment + randomness
+ *
+ * Higher scores = more likely to be selected.
+ */
+function scoreQuestion(
+    question: ScoredQuestion,
+    profile: Readonly<UserLearningProfile>,
+): number {
+    const { conceptId, difficulty } = question;
+    const stats = profile.conceptStats[conceptId];
+
+    let score = 0;
+
+    if (!stats) {
+        // Never seen this concept — give it a boost to ensure coverage
+        score += WEIGHTS.UNSEEN;
+    } else {
+        // Mistake weight: higher for concepts with more errors
+        if (stats.seenCount > 0) {
+            const errorRate = stats.incorrectCount / stats.seenCount;
+            score += errorRate * WEIGHTS.MISTAKE;
+        }
+
+        // Recency weight: boost concepts not seen recently
+        const timeSinceLastSeen = Date.now() - stats.lastSeenTimestamp;
+        const minutesSinceLastSeen = timeSinceLastSeen / 60000;
+        score += Math.min(minutesSinceLastSeen / 10, 1) * WEIGHTS.RECENCY;
+
+        // Difficulty adjustment: increase difficulty after 3+ correct in a row
+        if (stats.correctCount >= 3 && stats.incorrectCount === 0) {
+            // User has mastered this concept at current difficulty — prefer harder
+            if (difficulty === "hard") {
+                score += WEIGHTS.DIFFICULTY_ADJUSTMENT;
+            } else if (difficulty === "medium") {
+                score += WEIGHTS.DIFFICULTY_ADJUSTMENT * 0.5;
+            }
+            // Easy questions for mastered concepts get no difficulty bonus
+        } else if (stats.incorrectCount > 0) {
+            // User is struggling — prefer same or easier difficulty
+            if (difficulty === "easy") {
+                score += WEIGHTS.DIFFICULTY_ADJUSTMENT * 0.8;
+            } else if (difficulty === "medium") {
+                score += WEIGHTS.DIFFICULTY_ADJUSTMENT * 0.4;
+            }
+        }
+    }
+
+    // Add controlled randomness to prevent purely deterministic selection
+    score += Math.random() * WEIGHTS.BASE_RANDOM;
+
+    return score;
+}
+
 // ─── Question Selection Logic ────────────────────────────────────────────────
 
 /** Tracks the ID of the last served question to prevent immediate repeats */
 let lastQuestionId: string | null = null;
 
+/** Counter for reintroducing mistaken concepts */
+let questionsSinceMistake = 0;
+let pendingMistakeConcepts: ConceptID[] = [];
+
+/**
+ * Adds a concept to the pending mistake queue for reintroduction.
+ * Called externally when a user answers incorrectly.
+ */
+export function flagConceptForRevisit(conceptId: ConceptID): void {
+    if (!pendingMistakeConcepts.includes(conceptId)) {
+        pendingMistakeConcepts.push(conceptId);
+    }
+}
+
 /**
  * Returns a single resolved question ready for display.
- * - 60% chance of MCQ, 40% chance of numeric
- * - Prevents immediate repeats by re-rolling if the same question ID is picked
+ * Uses the mistake-driven algorithm to bias selection.
  *
- * Future extension point: Replace with an API call to fetch questions
- * from a remote server. The return type (ResolvedQuestion) stays the same.
+ * Algorithm:
+ * 1. Check if a mistaken concept needs reintroduction (every 5–10 questions)
+ * 2. Score all available questions against the learning profile
+ * 3. Select from top-scored candidates with weighted randomness
+ * 4. Prevent immediate repeats
  */
 export function getNextQuestion(): ResolvedQuestion {
-    const isMCQ = Math.random() < 0.6;
+    const profile = getProfile();
+    const allQuestions = getAllQuestions();
 
-    if (isMCQ) {
-        let question: MCQQuestion;
-        // Re-roll to avoid immediate repeat
-        do {
-            question = MCQ_POOL[randInt(0, MCQ_POOL.length - 1)];
-        } while (question.id === lastQuestionId && MCQ_POOL.length > 1);
+    questionsSinceMistake += 1;
 
-        lastQuestionId = question.id;
-        return { ...question };
-    } else {
-        let template: GeneratedQuestionTemplate;
-        // Re-roll to avoid same template type back-to-back
-        do {
-            template =
-                NUMERIC_TEMPLATES[randInt(0, NUMERIC_TEMPLATES.length - 1)];
-        } while (
-            template.id === lastQuestionId &&
-            NUMERIC_TEMPLATES.length > 1
+    // Check if we should force-reintroduce a mistaken concept
+    if (
+        pendingMistakeConcepts.length > 0 &&
+        questionsSinceMistake >= 5 + Math.floor(Math.random() * 6) // 5–10 questions
+    ) {
+        const conceptId = pendingMistakeConcepts.shift()!;
+        questionsSinceMistake = 0;
+
+        // Find a question for this concept
+        const candidates = allQuestions.filter(
+            (q) => q.conceptId === conceptId,
         );
-
-        const generated = template.generator();
-        lastQuestionId = template.id;
-
-        return {
-            id: `${template.id}-${Date.now()}`,
-            type: "numeric",
-            questionText: generated.questionText,
-            correctAnswer: generated.correctAnswer,
-            tolerance: generated.tolerance ?? generated.correctAnswer * 0.01,
-        };
+        if (candidates.length > 0) {
+            const candidate = candidates[randInt(0, candidates.length - 1)];
+            const resolved = candidate.resolve();
+            lastQuestionId = resolved.id;
+            return resolved;
+        }
     }
+
+    // Score all questions
+    const scored = allQuestions.map((q) => ({
+        question: q,
+        score: scoreQuestion(q, profile),
+    }));
+
+    // Sort by score descending
+    scored.sort((a, b) => b.score - a.score);
+
+    // Pick from top 5 candidates (weighted by score)
+    const topN = scored.slice(0, Math.min(5, scored.length));
+    const totalScore = topN.reduce((sum, s) => sum + s.score, 0);
+
+    let selected: ScoredQuestion;
+
+    if (totalScore === 0) {
+        // Fallback: random selection
+        selected = topN[randInt(0, topN.length - 1)].question;
+    } else {
+        // Weighted random selection from top candidates
+        let roll = Math.random() * totalScore;
+        selected = topN[topN.length - 1].question; // default to last
+
+        for (const entry of topN) {
+            roll -= entry.score;
+            if (roll <= 0) {
+                selected = entry.question;
+                break;
+            }
+        }
+    }
+
+    let resolved = selected.resolve();
+
+    // Re-roll once if same as last question
+    if (resolved.id === lastQuestionId && allQuestions.length > 1) {
+        const fallback = topN.find(
+            (s) => s.question.resolve().id !== lastQuestionId,
+        );
+        if (fallback) {
+            resolved = fallback.question.resolve();
+        }
+    }
+
+    lastQuestionId = resolved.id;
+    return resolved;
 }
 
 /**

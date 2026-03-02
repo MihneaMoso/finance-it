@@ -5,29 +5,61 @@
  * - Displays question text and 4 option buttons
  * - Immediate visual feedback (green = correct, red = incorrect)
  * - Disables all options after first selection
+ * - Reports answer events to the learning profile
+ * - Shows contextual hints for revisited concepts
  * - Large touch targets for mobile UX
  */
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
+import {
+    isStruggledConcept,
+    recordAnswer,
+} from "@/services/LearningProfileService";
+import { flagConceptForRevisit } from "@/services/QuestionService";
 import type { MCQQuestion } from "@/types/questions";
 
 type MCQCardProps = {
     question: MCQQuestion;
+    /** Optional hint text shown above the question */
+    contextHint?: string | null;
 };
 
-export function MCQCard({ question }: MCQCardProps) {
+export function MCQCard({ question, contextHint }: MCQCardProps) {
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+    const startTimeRef = useRef<number>(Date.now());
 
     const isAnswered = selectedIndex !== null;
     const isCorrect = selectedIndex === question.correctIndex;
 
+    // Check if this concept was previously struggled with
+    const showRevisitHint =
+        !contextHint && isStruggledConcept(question.conceptId);
+
     const handleSelect = (index: number) => {
-        // Disable re-answering after first selection
         if (isAnswered) return;
+
+        const responseTimeMs = Date.now() - startTimeRef.current;
+        const correct = index === question.correctIndex;
+
         setSelectedIndex(index);
+
+        // Report to learning profile
+        recordAnswer({
+            questionId: question.id,
+            conceptId: question.conceptId,
+            difficulty: question.difficulty,
+            correct,
+            responseTimeMs,
+            questionType: "mcq",
+        });
+
+        // Flag for revisit if incorrect
+        if (!correct) {
+            flagConceptForRevisit(question.conceptId);
+        }
     };
 
     /** Determine background color for each option button */
@@ -55,6 +87,14 @@ export function MCQCard({ question }: MCQCardProps) {
 
     return (
         <View style={styles.container}>
+            {(contextHint || showRevisitHint) && (
+                <View style={styles.hintBadge}>
+                    <ThemedText style={styles.hintText}>
+                        {contextHint ?? "Revisiting a concept"}
+                    </ThemedText>
+                </View>
+            )}
+
             <View style={styles.badge}>
                 <ThemedText style={styles.badgeText}>
                     Multiple Choice
@@ -121,6 +161,18 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         paddingHorizontal: 24,
         rowGap: 20,
+    },
+    hintBadge: {
+        alignSelf: "flex-start",
+        backgroundColor: "rgba(251, 191, 36, 0.15)",
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    hintText: {
+        fontSize: 12,
+        fontWeight: "600",
+        color: "#fbbf24",
     },
     badge: {
         alignSelf: "flex-start",

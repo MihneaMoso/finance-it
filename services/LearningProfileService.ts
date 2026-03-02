@@ -1,0 +1,222 @@
+/**
+ * LearningProfileService — Manages the user's learning profile.
+ *
+ * Responsibilities:
+ * - Initialize a default learning profile
+ * - Update the profile after every question or flashcard interaction
+ * - Provide summarized feature vectors for future ML consumption
+ * - Expose concept-level statistics for the mistake-driven algorithm
+ *
+ * Persistence:
+ * TODO: Persist profile to AsyncStorage for cross-session retention.
+ * Currently in-memory only — resets on app restart.
+ *
+ * ML Readiness:
+ * - getFeatureVector() returns a normalized numeric array
+ * - Data collection is separated from decision logic
+ * - Ranking logic is stubbed in UserRankingService
+ */
+
+import type {
+    AnswerEvent,
+    ConceptID,
+    ConceptStats,
+    FeatureVector,
+    UserLearningProfile,
+    UserSkillScore,
+} from "@/types/questions";
+
+// ─── Default Profile Factory ─────────────────────────────────────────────────
+
+function createDefaultProfile(): UserLearningProfile {
+    return {
+        totalAnswered: 0,
+        correctAnswers: 0,
+        conceptStats: {},
+        difficultyBias: {
+            easy: 0,
+            medium: 0,
+            hard: 0,
+        },
+    };
+}
+
+function createDefaultConceptStats(): ConceptStats {
+    return {
+        seenCount: 0,
+        correctCount: 0,
+        incorrectCount: 0,
+        averageResponseTimeMs: 0,
+        lastSeenTimestamp: 0,
+    };
+}
+
+// ─── Singleton Learning Profile ──────────────────────────────────────────────
+
+/**
+ * In-memory learning profile.
+ * TODO: Load from AsyncStorage on init, save after each update.
+ */
+let profile: UserLearningProfile = createDefaultProfile();
+
+// ─── Profile Access ──────────────────────────────────────────────────────────
+
+/** Returns the current learning profile (read-only snapshot) */
+export function getProfile(): Readonly<UserLearningProfile> {
+    return profile;
+}
+
+/** Resets the profile to defaults. Useful for testing or account switching. */
+export function resetProfile(): void {
+    profile = createDefaultProfile();
+}
+
+// ─── Profile Update ──────────────────────────────────────────────────────────
+
+/**
+ * Updates the learning profile after a user answers a question or flashcard.
+ *
+ * This is the single entry point for all learning data collection.
+ * Both the home feed and flashcard screen call this function.
+ */
+export function recordAnswer(event: AnswerEvent): void {
+    const { conceptId, difficulty, correct, responseTimeMs } = event;
+
+    // Global stats
+    profile.totalAnswered += 1;
+    if (correct) {
+        profile.correctAnswers += 1;
+    }
+
+    // Difficulty tracking
+    profile.difficultyBias[difficulty] += 1;
+
+    // Per-concept stats
+    if (!profile.conceptStats[conceptId]) {
+        profile.conceptStats[conceptId] = createDefaultConceptStats();
+    }
+
+    const stats = profile.conceptStats[conceptId];
+    stats.seenCount += 1;
+    stats.lastSeenTimestamp = Date.now();
+
+    if (correct) {
+        stats.correctCount += 1;
+    } else {
+        stats.incorrectCount += 1;
+    }
+
+    // Running average response time
+    const prevTotal = stats.averageResponseTimeMs * (stats.seenCount - 1);
+    stats.averageResponseTimeMs =
+        (prevTotal + responseTimeMs) / stats.seenCount;
+
+    // TODO: Persist updated profile to AsyncStorage
+}
+
+// ─── Concept Stats Access ────────────────────────────────────────────────────
+
+/** Get stats for a specific concept, or default if unseen */
+export function getConceptStats(conceptId: ConceptID): Readonly<ConceptStats> {
+    return profile.conceptStats[conceptId] ?? createDefaultConceptStats();
+}
+
+/** Get all concept IDs the user has interacted with */
+export function getSeenConcepts(): ConceptID[] {
+    return Object.keys(profile.conceptStats);
+}
+
+/** Check if a concept has been answered incorrectly recently */
+export function isStruggledConcept(conceptId: ConceptID): boolean {
+    const stats = profile.conceptStats[conceptId];
+    if (!stats) return false;
+    return stats.incorrectCount > stats.correctCount;
+}
+
+// ─── Feature Vector for ML ───────────────────────────────────────────────────
+
+/**
+ * Returns a normalized feature vector for future ML model consumption.
+ *
+ * Current features (in order):
+ * [0] Global accuracy ratio (0–1)
+ * [1] Total questions answered (normalized by 100)
+ * [2] Average response time across all concepts (normalized by 30000ms)
+ * [3] Mistake density: ratio of concepts with more wrong than right answers
+ * [4] Easy difficulty ratio
+ * [5] Medium difficulty ratio
+ * [6] Hard difficulty ratio
+ * [7] Number of unique concepts seen (normalized by 20)
+ *
+ * TODO: Expand feature set as more signals are collected.
+ * TODO: Add per-concept features when model supports variable-length input.
+ */
+export function getFeatureVector(): FeatureVector {
+    const totalBias =
+        profile.difficultyBias.easy +
+        profile.difficultyBias.medium +
+        profile.difficultyBias.hard;
+
+    const conceptIds = Object.keys(profile.conceptStats);
+    const conceptCount = conceptIds.length;
+
+    // Calculate global avg response time
+    let totalResponseTime = 0;
+    let struggledConcepts = 0;
+
+    for (const id of conceptIds) {
+        const stats = profile.conceptStats[id];
+        totalResponseTime += stats.averageResponseTimeMs;
+        if (stats.incorrectCount > stats.correctCount) {
+            struggledConcepts += 1;
+        }
+    }
+
+    const avgResponseTime =
+        conceptCount > 0 ? totalResponseTime / conceptCount : 0;
+
+    return [
+        // [0] Global accuracy
+        profile.totalAnswered > 0
+            ? profile.correctAnswers / profile.totalAnswered
+            : 0,
+        // [1] Total answered (normalized)
+        Math.min(profile.totalAnswered / 100, 1),
+        // [2] Avg response time (normalized by 30s)
+        Math.min(avgResponseTime / 30000, 1),
+        // [3] Mistake density
+        conceptCount > 0 ? struggledConcepts / conceptCount : 0,
+        // [4] Easy ratio
+        totalBias > 0 ? profile.difficultyBias.easy / totalBias : 0.33,
+        // [5] Medium ratio
+        totalBias > 0 ? profile.difficultyBias.medium / totalBias : 0.33,
+        // [6] Hard ratio
+        totalBias > 0 ? profile.difficultyBias.hard / totalBias : 0.34,
+        // [7] Concept breadth (normalized)
+        Math.min(conceptCount / 20, 1),
+    ];
+}
+
+// ─── User Ranking Service Stub ───────────────────────────────────────────────
+
+/**
+ * UserRankingService — Stub for future ML-based skill scoring.
+ *
+ * Architecture:
+ * 1. Data collection → LearningProfileService (implemented)
+ * 2. Decision logic → QuestionService.getNextQuestion (implemented)
+ * 3. Ranking logic → UserRankingService (this stub)
+ *
+ * TODO: Implement with actual ML model inference.
+ * TODO: Model input = getFeatureVector(), output = UserSkillScore (0–100).
+ * TODO: Consider on-device inference (ONNX Runtime) vs server-side.
+ */
+export function getUserSkillScore(): UserSkillScore {
+    // Placeholder: simple heuristic based on accuracy and volume
+    if (profile.totalAnswered === 0) return 0;
+
+    const accuracy = profile.correctAnswers / profile.totalAnswered;
+    const volumeBonus = Math.min(profile.totalAnswered / 50, 1) * 0.2;
+
+    return Math.round((accuracy * 0.8 + volumeBonus) * 100);
+}

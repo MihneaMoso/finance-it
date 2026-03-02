@@ -31,6 +31,19 @@ export default function TabLayout() {
                 }}
             />
             <Tabs.Screen
+                name="flashcards"
+                options={{
+                    title: "Flashcards",
+                    tabBarIcon: ({ color }) => (
+                        <IconSymbol
+                            size={28}
+                            name="rectangle.stack.fill"
+                            color={color}
+                        />
+                    ),
+                }}
+            />
+            <Tabs.Screen
                 name="account"
                 options={{
                     title: "Account",
@@ -43,6 +56,7 @@ export default function TabLayout() {
                     ),
                 }}
             />
+            
         </Tabs>
     );
 }

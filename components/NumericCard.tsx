@@ -6,10 +6,12 @@
  * - Numeric input field with submit button
  * - Accepts answers within a configurable tolerance (default ±1%)
  * - Immediate visual feedback after submission
+ * - Reports answer events to the learning profile
+ * - Shows contextual hints for revisited concepts
  * - Disables re-submission after first attempt
  */
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
     Keyboard,
     StyleSheet,
@@ -19,6 +21,11 @@ import {
 } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
+import {
+    isStruggledConcept,
+    recordAnswer,
+} from "@/services/LearningProfileService";
+import { flagConceptForRevisit } from "@/services/QuestionService";
 
 type NumericCardProps = {
     question: {
@@ -27,31 +34,54 @@ type NumericCardProps = {
         questionText: string;
         correctAnswer: number;
         tolerance: number;
+        conceptId: string;
+        difficulty: "easy" | "medium" | "hard";
     };
+    /** Optional hint text shown above the question */
+    contextHint?: string | null;
 };
 
-export function NumericCard({ question }: NumericCardProps) {
+export function NumericCard({ question, contextHint }: NumericCardProps) {
     const [inputValue, setInputValue] = useState("");
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [isCorrect, setIsCorrect] = useState(false);
+    const startTimeRef = useRef<number>(Date.now());
+
+    // Check if this concept was previously struggled with
+    const showRevisitHint =
+        !contextHint && isStruggledConcept(question.conceptId);
 
     const handleSubmit = () => {
         if (isSubmitted) return;
 
         Keyboard.dismiss();
 
-        // Strip commas and dollar signs, parse the numeric value
         const cleaned = inputValue.replace(/[$,\s]/g, "");
         const userAnswer = parseFloat(cleaned);
 
-        if (isNaN(userAnswer)) return; // Ignore invalid input
+        if (isNaN(userAnswer)) return;
 
-        // Check if the answer is within tolerance
         const diff = Math.abs(userAnswer - question.correctAnswer);
         const correct = diff <= question.tolerance;
+        const responseTimeMs = Date.now() - startTimeRef.current;
 
         setIsCorrect(correct);
         setIsSubmitted(true);
+
+        // Report to learning profile
+        recordAnswer({
+            questionId: question.id,
+            conceptId: question.conceptId,
+            difficulty: question.difficulty,
+            correct,
+            responseTimeMs,
+            questionType: "numeric",
+        });
+
+        // Flag for revisit if incorrect
+        if (!correct) {
+            flagConceptForRevisit(question.conceptId);
+        }
     };
 
     /** Format a number for display (e.g. 12345.67 → $12,345.67) */
@@ -61,6 +91,14 @@ export function NumericCard({ question }: NumericCardProps) {
 
     return (
         <View style={styles.container}>
+            {(contextHint || showRevisitHint) && (
+                <View style={styles.hintBadge}>
+                    <ThemedText style={styles.hintText}>
+                        {contextHint ?? "Revisiting a concept"}
+                    </ThemedText>
+                </View>
+            )}
+
             <View style={styles.badge}>
                 <ThemedText style={styles.badgeText}>Calculate</ThemedText>
             </View>
@@ -142,6 +180,18 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         paddingHorizontal: 24,
         rowGap: 20,
+    },
+    hintBadge: {
+        alignSelf: "flex-start",
+        backgroundColor: "rgba(251, 191, 36, 0.15)",
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    hintText: {
+        fontSize: 12,
+        fontWeight: "600",
+        color: "#fbbf24",
     },
     badge: {
         alignSelf: "flex-start",

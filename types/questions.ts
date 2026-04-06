@@ -102,6 +102,12 @@ export type ConceptStats = {
  * - totalAnswered / correctAnswers provide global accuracy signals
  */
 export type UserLearningProfile = {
+    /**
+     * Auth readiness:
+     * TODO: Replace with Clerk user ID when auth is enabled.
+     */
+    userId?: string;
+
     totalAnswered: number;
     correctAnswers: number;
 
@@ -114,34 +120,106 @@ export type UserLearningProfile = {
     };
 };
 
-/**
- * Event emitted when a user answers a question.
- * Used to update the learning profile.
- */
-export type AnswerEvent = {
-    questionId: string;
-    conceptId: ConceptID;
-    difficulty: Difficulty;
-    correct: boolean;
-    responseTimeMs: number;
-    questionType: "mcq" | "numeric" | "flashcard";
+// ─── Hearts / Lessons / Simulations Types ───────────────────────────────────
+
+export type HeartsState = {
+    /**
+     * Auth readiness:
+     * TODO: Replace with Clerk user ID when auth is enabled.
+     */
+    userId?: string;
+
+    current: number;
+    max: number;
+    lastReset: number;
 };
 
-// ─── Flashcard Types ─────────────────────────────────────────────────────────
+export type LessonStatus = "locked" | "available" | "completed";
 
-/** A flashcard for Anki-style review */
-export type Flashcard = {
+export type Chapter = {
     id: string;
-    conceptId: ConceptID;
-    front: string;
-    back: string;
-    difficulty: Difficulty;
+    title: TranslatableText;
+    order: number;
 };
 
-/** User self-assessment after viewing a flashcard answer */
-export type FlashcardResponse = "knew_it" | "unsure" | "didnt_know";
+export type ChapterNodeType = "lesson" | "simulation" | "chapter_test";
 
-// ─── ML Readiness Types ─────────────────────────────────────────────────────
+export type LessonNode = {
+    id: string;
+    type: ChapterNodeType;
+    title: TranslatableText;
+    conceptIds: ConceptID[];
+    difficulty: Difficulty;
+    status: LessonStatus;
+    order: number;
+
+    /** Groups nodes into chapters */
+    chapterId: string;
+
+    /** Optional island layout metadata (UI-only, safe to ignore server-side) */
+    ui?: {
+        islandIndex?: number;
+        x?: number; // 0..1
+        y?: number; // 0..1
+    };
+};
+
+export type LessonContentSlide = {
+    id: string;
+    title: TranslatableText;
+    content: TranslatableText;
+};
+
+export type Lesson = {
+    id: string;
+    title: TranslatableText;
+    slides: LessonContentSlide[];
+    /**
+     * Lesson quiz questions.
+     * Note: Uses existing Question union type (MCQ & numeric templates),
+     * so the quiz can reuse QuestionCard components.
+     */
+    questions: Question[];
+};
+
+export type SimulationStep = {
+    id: string;
+    type: "story" | "question";
+    content: TranslatableText;
+
+    /** Only for question steps */
+    question?: Question;
+
+    /** Optional branching (future-ready) */
+    nextStepId?: string;
+};
+
+export type Simulation = {
+    id: string;
+    title: TranslatableText;
+    steps: SimulationStep[];
+    conceptIds: ConceptID[];
+};
+
+export type LessonProgressState = {
+    /**
+     * Auth readiness:
+     * TODO: Replace with Clerk user ID when auth is enabled.
+     */
+    userId?: string;
+
+    completedNodeIds: string[];
+    lastUpdated: number;
+};
+
+/**
+ * Translatable text container.
+ *
+ * i18n preparation:
+ * - Content models should prefer TranslatableText over raw strings.
+ * - UI strings should be sourced from a language map (see i18n/strings.ts).
+ */
+export type TranslatableText = Record<string, string>;
 
 /**
  * User skill score (0–100) for future ranking system.

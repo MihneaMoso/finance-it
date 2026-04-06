@@ -1,0 +1,146 @@
+/**
+ * LessonNode — roadmap node tile (lesson or simulation) with status styling.
+ */
+
+import React from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
+
+import { ThemedText } from "@/components/themed-text";
+import { getLanguage, t } from "@/i18n/strings";
+import type { LessonNode as LessonNodeType } from "@/types/questions";
+
+export function LessonNode({
+    node,
+    onPress,
+}: {
+    node: LessonNodeType;
+    onPress: (node: LessonNodeType) => void;
+}) {
+    const lang = getLanguage();
+    const title = node.title[lang] ?? node.title.en;
+
+    const disabled = node.status === "locked";
+
+    const badgeText =
+        node.type === "lesson"
+            ? t((s) => s.learn.lesson)
+            : node.type === "chapter_test"
+              ? t((s) => s.learn.chapterTest)
+              : t((s) => s.learn.practice);
+
+    return (
+        <TouchableOpacity
+            onPress={() => onPress(node)}
+            disabled={disabled}
+            activeOpacity={0.7}
+            style={[
+                styles.container,
+                node.status === "completed" && styles.completed,
+                node.status === "available" && styles.available,
+                node.status === "locked" && styles.locked,
+            ]}
+        >
+            <View style={styles.row}>
+                <View
+                    style={[
+                        styles.badge,
+                        node.type === "lesson"
+                            ? styles.badgeLesson
+                            : styles.badgeSim,
+                    ]}
+                >
+                    <ThemedText style={styles.badgeText}>
+                        {badgeText}
+                    </ThemedText>
+                </View>
+                <View style={styles.statusDot} />
+            </View>
+
+            <ThemedText style={styles.title}>{title}</ThemedText>
+
+            <ThemedText style={styles.meta}>
+                {node.difficulty.toUpperCase()} • {node.conceptIds.join(", ")}
+            </ThemedText>
+
+            {node.status === "locked" && (
+                <ThemedText style={styles.lockedText}>
+                    {t((s) => s.learn.locked)}
+                </ThemedText>
+            )}
+            {node.status === "completed" && (
+                <ThemedText style={styles.completedText}>
+                    {t((s) => s.learn.completed)}
+                </ThemedText>
+            )}
+        </TouchableOpacity>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        borderRadius: 18,
+        borderWidth: 1,
+        rowGap: 8,
+    },
+    row: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+    },
+    badge: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 999,
+    },
+    badgeLesson: {
+        backgroundColor: "rgba(34, 197, 94, 0.15)",
+    },
+    badgeSim: {
+        backgroundColor: "rgba(139, 92, 246, 0.15)",
+    },
+    badgeText: {
+        fontSize: 12,
+        fontWeight: "700",
+        color: "rgba(255, 255, 255, 0.75)",
+    },
+    statusDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: "rgba(255, 255, 255, 0.2)",
+    },
+    title: {
+        fontSize: 16,
+        fontWeight: "800",
+        color: "#fff",
+    },
+    meta: {
+        fontSize: 12,
+        color: "rgba(255, 255, 255, 0.45)",
+    },
+    lockedText: {
+        fontSize: 12,
+        fontWeight: "700",
+        color: "rgba(255, 255, 255, 0.4)",
+    },
+    completedText: {
+        fontSize: 12,
+        fontWeight: "700",
+        color: "#22c55e",
+    },
+    available: {
+        borderColor: "rgba(255, 255, 255, 0.15)",
+        backgroundColor: "rgba(255, 255, 255, 0.06)",
+    },
+    locked: {
+        borderColor: "rgba(255, 255, 255, 0.08)",
+        backgroundColor: "rgba(255, 255, 255, 0.03)",
+        opacity: 0.7,
+    },
+    completed: {
+        borderColor: "rgba(34, 197, 94, 0.35)",
+        backgroundColor: "rgba(34, 197, 94, 0.10)",
+    },
+});

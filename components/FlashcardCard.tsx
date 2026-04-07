@@ -9,6 +9,7 @@
  */
 
 import React, { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
     Animated,
     StyleSheet,
@@ -32,6 +33,8 @@ type FlashcardCardProps = {
 };
 
 export function FlashcardCard({ flashcard, onNext }: FlashcardCardProps) {
+    const { t, i18n } = useTranslation();
+
     const [isFlipped, setIsFlipped] = useState(false);
     const [hasResponded, setHasResponded] = useState(false);
     const flipAnim = useRef(new Animated.Value(0)).current;
@@ -91,12 +94,16 @@ export function FlashcardCard({ flashcard, onNext }: FlashcardCardProps) {
               ? "#f59e0b"
               : "#ef4444";
 
+    const lang = i18n.language || "en";
+    const frontText = flashcard.front[lang] ?? flashcard.front.en ?? "";
+    const backText = flashcard.back[lang] ?? flashcard.back.en ?? "";
+
     return (
         <View style={styles.container}>
             {struggled && (
                 <View style={styles.hintBadge}>
                     <ThemedText style={styles.hintText}>
-                        Revisiting a concept
+                        {t("flashcards.revisitingConcept")}
                     </ThemedText>
                 </View>
             )}
@@ -136,13 +143,13 @@ export function FlashcardCard({ flashcard, onNext }: FlashcardCardProps) {
                         ]}
                     >
                         <ThemedText style={styles.cardLabel}>
-                            Question
+                            {t("flashcards.question")}
                         </ThemedText>
                         <ThemedText style={styles.cardText}>
-                            {flashcard.front}
+                            {frontText}
                         </ThemedText>
                         <ThemedText style={styles.tapHint}>
-                            Tap to reveal answer
+                            {t("flashcards.tapToReveal")}
                         </ThemedText>
                     </Animated.View>
 
@@ -154,9 +161,11 @@ export function FlashcardCard({ flashcard, onNext }: FlashcardCardProps) {
                             { opacity: backOpacity },
                         ]}
                     >
-                        <ThemedText style={styles.cardLabel}>Answer</ThemedText>
+                        <ThemedText style={styles.cardLabel}>
+                            {t("flashcards.answer")}
+                        </ThemedText>
                         <ThemedText style={styles.cardText}>
-                            {flashcard.back}
+                            {backText}
                         </ThemedText>
                     </Animated.View>
                 </View>
@@ -165,7 +174,7 @@ export function FlashcardCard({ flashcard, onNext }: FlashcardCardProps) {
             {isFlipped && !hasResponded && (
                 <View style={styles.responseContainer}>
                     <ThemedText style={styles.responsePrompt}>
-                        How well did you know this?
+                        {t("flashcards.howWell")}
                     </ThemedText>
                     <View style={styles.responseButtons}>
                         <TouchableOpacity
@@ -180,7 +189,7 @@ export function FlashcardCard({ flashcard, onNext }: FlashcardCardProps) {
                                 😕
                             </ThemedText>
                             <ThemedText style={styles.responseLabel}>
-                                Didn't know
+                                {t("flashcards.didntKnow")}
                             </ThemedText>
                         </TouchableOpacity>
 
@@ -196,7 +205,7 @@ export function FlashcardCard({ flashcard, onNext }: FlashcardCardProps) {
                                 🤔
                             </ThemedText>
                             <ThemedText style={styles.responseLabel}>
-                                Unsure
+                                {t("flashcards.unsure")}
                             </ThemedText>
                         </TouchableOpacity>
 
@@ -209,7 +218,7 @@ export function FlashcardCard({ flashcard, onNext }: FlashcardCardProps) {
                                 😊
                             </ThemedText>
                             <ThemedText style={styles.responseLabel}>
-                                Knew it
+                                {t("flashcards.knewIt")}
                             </ThemedText>
                         </TouchableOpacity>
                     </View>
@@ -219,7 +228,7 @@ export function FlashcardCard({ flashcard, onNext }: FlashcardCardProps) {
             {hasResponded && (
                 <View style={styles.respondedContainer}>
                     <ThemedText style={styles.respondedText}>
-                        ✓ Response recorded
+                        {t("flashcards.responseRecorded")}
                     </ThemedText>
                 </View>
             )}

@@ -253,3 +253,28 @@ export type AnswerEvent = {
     source?: "feed" | "flashcard" | "lesson" | "simulation";
     questionType?: "mcq" | "numeric" | "flashcard";
 };
+
+export type FlashcardResponse = "didnt_know" | "unsure" | "knew_it";
+
+/**
+ * Flashcard review event.
+ *
+ * Records user interactions with flashcards for the spaced repetition system.
+ */
+export type FlashcardReviewEvent = {
+    flashcardId: string;
+    conceptId: ConceptID;
+    difficulty: Difficulty;
+    response: FlashcardResponse;
+    correct: boolean;
+    responseTimeMs: number;
+    timestamp: number;
+};
+
+export type Flashcard = {
+    id: string;
+    conceptId: ConceptID;
+    difficulty: Difficulty;
+    front: TranslatableText;
+    back: TranslatableText;
+};

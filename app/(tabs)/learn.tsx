@@ -1,7 +1,3 @@
-/**
- * LearnScreen — Duolingo-style roadmap.
- */
-
 import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useMemo, useState } from "react";
@@ -68,7 +64,7 @@ export default function LearnScreen() {
         return [...nodes].sort((a, b) => a.order - b.order);
     }, [nodes]);
 
-    // Layout: each island is placed inside a map area.
+   
     const MAP_WIDTH = Math.min(windowWidth, 520);
     const MAP_PADDING_TOP = 70;
     const MAP_PADDING_BOTTOM = 140;
@@ -85,7 +81,6 @@ export default function LearnScreen() {
         [MAP_PADDING_TOP, MAP_WIDTH],
     );
 
-    // Compute map height from bottom-most node so content doesn’t feel scattered.
     const mapHeight = useMemo(() => {
         const ys = sortedNodes.map((n) => pointFor(n).y);
         const maxY = ys.length ? Math.max(...ys) : 800;
@@ -167,12 +162,12 @@ export default function LearnScreen() {
                         </View>
                     ))}
 
-                    {/* Sketchy paths */}
+                    
                     {paths.map((p, idx) => (
                         <RoadmapPath key={idx} from={p.from} to={p.to} />
                     ))}
 
-                    {/* Nodes */}
+                    
                     {sortedNodes.map((n) => {
                         const pt = pointFor(n);
                         return (

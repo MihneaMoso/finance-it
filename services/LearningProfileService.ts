@@ -21,10 +21,13 @@ import type {
     AnswerEvent,
     ConceptID,
     ConceptStats,
+    Difficulty,
     FeatureVector,
     UserLearningProfile,
     UserSkillScore,
 } from "@/types/questions";
+
+import { updateUserStats } from "@/services/UserService";
 
 // ─── Default Profile Factory ─────────────────────────────────────────────────
 
@@ -89,7 +92,7 @@ export function recordAnswer(event: AnswerEvent): void {
     }
 
     // Difficulty tracking
-    profile.difficultyBias[difficulty] += 1;
+    profile.difficultyBias[difficulty as Difficulty] += 1;
 
     // Per-concept stats
     if (!profile.conceptStats[conceptId]) {
@@ -219,4 +222,32 @@ export function getUserSkillScore(): UserSkillScore {
     const volumeBonus = Math.min(profile.totalAnswered / 50, 1) * 0.2;
 
     return Math.round((accuracy * 0.8 + volumeBonus) * 100);
+}
+
+/**
+ * recordAnswerAndSync — bridge to persist user stats to Firestore.
+ *
+ * Failsafe behavior:
+ * - If Firestore fails, we keep local learning profile updated.
+ *
+ * TODO: implement offline sync queue.
+ */
+export async function recordAnswerAndSync(
+    event: AnswerEvent,
+    clerkUserId?: string,
+) {
+    recordAnswer(event);
+
+    if (!clerkUserId) return;
+
+    try {
+        await updateUserStats({
+            clerkUserId,
+            deltaTotalAnswered: 1,
+            deltaCorrectAnswers: event.correct ? 1 : 0,
+            responseTimeMs: event.responseTimeMs,
+        });
+    } catch {
+        // ignore
+    }
 }

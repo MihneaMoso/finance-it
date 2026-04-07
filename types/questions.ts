@@ -240,3 +240,16 @@ export type UserProfile = {
     email: string;
     experienceLevel: "beginner" | "intermediate" | "advanced";
 };
+
+// ─── Learning Event Types ───────────────────────────────────────────────────
+
+export type AnswerEvent = {
+    questionId?: string;
+    conceptId: ConceptID;
+    difficulty: Difficulty;
+    correct: boolean;
+    responseTimeMs: number;
+    timestamp?: number;
+    source?: "feed" | "flashcard" | "lesson" | "simulation";
+    questionType?: "mcq" | "numeric" | "flashcard";
+};

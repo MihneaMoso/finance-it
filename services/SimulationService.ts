@@ -6,6 +6,8 @@
  * All models are JSON-serializable.
  */
 
+import { FALLBACK_ENABLED } from "@/services/ContentFallback";
+import { fetchSimulationById } from "@/services/FirestoreService";
 import type { Simulation } from "@/types/questions";
 
 const SIMULATIONS: Record<string, Simulation> = {
@@ -114,8 +116,27 @@ const SIMULATIONS: Record<string, Simulation> = {
 export async function getSimulationById(
     id: string,
 ): Promise<Simulation | null> {
-    // TODO: Replace with API call (backend)
-    return SIMULATIONS[id] ?? null;
+    // TODO: Replace hardcoded data with API calls.
+    try {
+        const remote = await fetchSimulationById(id);
+        if (remote) {
+            return {
+                id: remote.id,
+                title: { en: remote.id, ro: remote.id }, // TODO in schema
+                conceptIds: remote.conceptIds,
+                steps: remote.steps.map((s, idx) => ({
+                    id: `step-${idx}`,
+                    type: s.type,
+                    content: s.content,
+                    // TODO: resolve questionId -> Question
+                })),
+            };
+        }
+    } catch {
+        // ignore and fallback
+    }
+
+    return FALLBACK_ENABLED ? (SIMULATIONS[id] ?? null) : null;
 }
 
 export async function getSimulationQuestionCount(id: string): Promise<number> {

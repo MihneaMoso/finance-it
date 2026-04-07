@@ -6,6 +6,8 @@
  * All models are JSON-serializable.
  */
 
+import { FALLBACK_ENABLED } from "@/services/ContentFallback";
+import { fetchLessonById } from "@/services/FirestoreService";
 import type {
     Chapter,
     Lesson,
@@ -260,5 +262,24 @@ export async function getRoadmapNodes(): Promise<LessonNode[]> {
 
 export async function getLessonById(id: string): Promise<Lesson | null> {
     // TODO: Replace with API call (backend)
-    return LESSONS[id] ?? null;
+    try {
+        const remote = await fetchLessonById(id);
+        if (remote) {
+            // Map FirestoreLesson -> Lesson
+            return {
+                id: remote.id,
+                title: { en: remote.id, ro: remote.id }, // TODO: add lesson titles to Firestore schema
+                slides: remote.slides.map((s, idx) => ({
+                    id: `slide-${idx}`,
+                    title: s.title,
+                    content: s.content,
+                })),
+                questions: [], // TODO: resolve questionIds -> Question[] via Firestore
+            };
+        }
+    } catch {
+        // ignore and fallback
+    }
+
+    return FALLBACK_ENABLED ? (LESSONS[id] ?? null) : null;
 }

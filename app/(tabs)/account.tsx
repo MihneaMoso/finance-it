@@ -13,8 +13,10 @@ import React, { useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemedText } from "@/components/themed-text";
 import type { UserProfile } from "@/types/questions";
+import { useTranslation } from "react-i18next";
 
 /** Experience level options for the picker */
 const EXPERIENCE_LEVELS: UserProfile["experienceLevel"][] = [
@@ -27,6 +29,7 @@ export default function AccountScreen() {
     const insets = useSafeAreaInsets();
     const { user } = useUser();
     const router = useRouter();
+    const { t } = useTranslation();
 
     // Local experience level state (not stored in Clerk)
     const [experienceLevel, setExperienceLevel] =
@@ -60,6 +63,11 @@ export default function AccountScreen() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
+                {/* Language */}
+                <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+                    <LanguageSwitcher />
+                </View>
+
                 {/* ── Signed-Out State ── */}
                 <SignedOut>
                     <View style={styles.header}>
@@ -70,7 +78,7 @@ export default function AccountScreen() {
                             Finance-IT
                         </ThemedText>
                         <ThemedText style={styles.headerSubtitle}>
-                            Sign in to track your progress
+                            {t("signInToTrackYourProgress")}
                         </ThemedText>
                     </View>
 
@@ -80,7 +88,7 @@ export default function AccountScreen() {
                         onPress={() => router.push("/(auth)/sign-in")}
                     >
                         <ThemedText style={styles.authButtonText}>
-                            Sign In
+                            {t("signIn")}
                         </ThemedText>
                     </TouchableOpacity>
 
@@ -90,7 +98,7 @@ export default function AccountScreen() {
                         onPress={() => router.push("/(auth)/sign-up")}
                     >
                         <ThemedText style={styles.signUpButtonText}>
-                            Create Account
+                            {t("createAccount")}
                         </ThemedText>
                     </TouchableOpacity>
                 </SignedOut>
@@ -115,7 +123,7 @@ export default function AccountScreen() {
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <ThemedText style={styles.sectionTitle}>
-                                Profile
+                                {t("profile")}
                             </ThemedText>
                             {!isEditing && (
                                 <TouchableOpacity
@@ -125,7 +133,7 @@ export default function AccountScreen() {
                                     }}
                                 >
                                     <ThemedText style={styles.editLink}>
-                                        Edit
+                                        {t("edit")}
                                     </ThemedText>
                                 </TouchableOpacity>
                             )}
@@ -134,7 +142,7 @@ export default function AccountScreen() {
                         {/* Name Field (read-only, from Clerk) */}
                         <View style={styles.field}>
                             <ThemedText style={styles.fieldLabel}>
-                                Name
+                                {t("name")}
                             </ThemedText>
                             <ThemedText style={styles.fieldValue}>
                                 {displayName}
@@ -144,7 +152,7 @@ export default function AccountScreen() {
                         {/* Email Field (read-only, from Clerk) */}
                         <View style={styles.field}>
                             <ThemedText style={styles.fieldLabel}>
-                                Email
+                                {t("email")}
                             </ThemedText>
                             <ThemedText style={styles.fieldValue}>
                                 {displayEmail}
@@ -154,7 +162,7 @@ export default function AccountScreen() {
                         {/* Experience Level Selector */}
                         <View style={styles.field}>
                             <ThemedText style={styles.fieldLabel}>
-                                Experience Level
+                                {t("experienceLevel")}
                             </ThemedText>
                             {isEditing ? (
                                 <View style={styles.levelSelector}>
@@ -198,7 +206,7 @@ export default function AccountScreen() {
                                     activeOpacity={0.7}
                                 >
                                     <ThemedText style={styles.saveButtonText}>
-                                        Save
+                                        {t("save")}
                                     </ThemedText>
                                 </TouchableOpacity>
                                 <TouchableOpacity
@@ -207,7 +215,7 @@ export default function AccountScreen() {
                                     activeOpacity={0.7}
                                 >
                                     <ThemedText style={styles.cancelButtonText}>
-                                        Cancel
+                                        {t("cancel")}
                                     </ThemedText>
                                 </TouchableOpacity>
                             </View>
@@ -217,7 +225,7 @@ export default function AccountScreen() {
                     {/* Stats Placeholder */}
                     <View style={styles.section}>
                         <ThemedText style={styles.sectionTitle}>
-                            Stats
+                            {t("stats")}
                         </ThemedText>
                         <View style={styles.statsRow}>
                             <View style={styles.statCard}>
@@ -225,7 +233,7 @@ export default function AccountScreen() {
                                     0
                                 </ThemedText>
                                 <ThemedText style={styles.statLabel}>
-                                    Questions{"\n"}Answered
+                                    {t("questionsAnswered")}
                                 </ThemedText>
                             </View>
                             <View style={styles.statCard}>
@@ -233,7 +241,7 @@ export default function AccountScreen() {
                                     0%
                                 </ThemedText>
                                 <ThemedText style={styles.statLabel}>
-                                    Accuracy{"\n"}Rate
+                                    {t("accuracyRate")}
                                 </ThemedText>
                             </View>
                             <View style={styles.statCard}>
@@ -241,7 +249,7 @@ export default function AccountScreen() {
                                     0
                                 </ThemedText>
                                 <ThemedText style={styles.statLabel}>
-                                    Day{"\n"}Streak
+                                    {t("dayStreak")}
                                 </ThemedText>
                             </View>
                         </View>

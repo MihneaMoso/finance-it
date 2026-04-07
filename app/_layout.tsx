@@ -7,10 +7,12 @@ import {
 } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import React, { useEffect, useState } from "react";
 import { Platform } from "react-native";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { initI18n } from "@/i18n/i18n";
 
 export const unstable_settings = {
     anchor: "(tabs)",
@@ -26,6 +28,18 @@ if (!publishableKey) {
 
 export default function RootLayout() {
     const colorScheme = useColorScheme();
+    const [i18nReady, setI18nReady] = useState(false);
+
+    useEffect(() => {
+        void (async () => {
+            await initI18n();
+            setI18nReady(true);
+        })();
+    }, []);
+
+    if (!i18nReady) {
+        return null;
+    }
 
     if (Platform.OS === "web") {
         document.title = "Finance-IT";

@@ -143,7 +143,12 @@ export default function LearnScreen() {
                 contentContainerStyle={styles.content}
                 showsVerticalScrollIndicator={false}
             >
-                <View style={[styles.map, { width: MAP_WIDTH, height: mapHeight }]}>
+                <View
+                    style={[
+                        styles.map,
+                        { width: MAP_WIDTH, height: mapHeight },
+                    ]}
+                >
                     {/* Chapter headers */}
                     {chapterMarkers.map((m) => (
                         <View
@@ -155,7 +160,8 @@ export default function LearnScreen() {
                         >
                             <View style={styles.chapterPill}>
                                 <ThemedText style={styles.chapterPillText}>
-                                    {t((s) => s.learn.chapter)} {chapterTitleById.get(m.chapterId) ?? ""}
+                                    {t((s) => s.learn.chapter)}{" "}
+                                    {chapterTitleById.get(m.chapterId) ?? ""}
                                 </ThemedText>
                             </View>
                         </View>

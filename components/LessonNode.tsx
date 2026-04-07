@@ -56,9 +56,19 @@ export function LessonNode({
                 <View style={styles.statusDot} />
             </View>
 
-            <ThemedText style={styles.title}>{title}</ThemedText>
+            <ThemedText
+                style={styles.title}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+            >
+                {title}
+            </ThemedText>
 
-            <ThemedText style={styles.meta}>
+            <ThemedText
+                style={styles.meta}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+            >
                 {node.difficulty.toUpperCase()} • {node.conceptIds.join(", ")}
             </ThemedText>
 
@@ -78,11 +88,12 @@ export function LessonNode({
 
 const styles = StyleSheet.create({
     container: {
-        paddingHorizontal: 16,
-        paddingVertical: 14,
+        width: 168,
+        paddingHorizontal: 12,
+        paddingVertical: 12,
         borderRadius: 18,
         borderWidth: 1,
-        rowGap: 8,
+        rowGap: 6,
     },
     row: {
         flexDirection: "row",
@@ -112,13 +123,15 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(255, 255, 255, 0.2)",
     },
     title: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: "800",
         color: "#fff",
+        lineHeight: 20,
     },
     meta: {
-        fontSize: 12,
+        fontSize: 11,
         color: "rgba(255, 255, 255, 0.45)",
+        lineHeight: 16,
     },
     lockedText: {
         fontSize: 12,

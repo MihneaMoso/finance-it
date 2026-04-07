@@ -21,8 +21,13 @@ export function RoadmapPath({
         const dy = to.y - from.y;
         const len = Math.sqrt(dx * dx + dy * dy);
         const angleRad = Math.atan2(dy, dx);
-        return { len, angleRad };
+        return { dx, dy, len, angleRad };
     }, [from.x, from.y, to.x, to.y]);
+
+    // RN transforms rotate around the element center.
+    // We position the element center at the midpoint between from/to.
+    const midX = from.x + metrics.dx / 2;
+    const midY = from.y + metrics.dy / 2;
 
     return (
         <View
@@ -30,13 +35,10 @@ export function RoadmapPath({
             style={[
                 styles.line,
                 {
-                    left: from.x,
-                    top: from.y,
+                    left: midX - metrics.len / 2,
+                    top: midY,
                     width: Math.max(1, metrics.len),
-                    transform: [
-                        { rotate: `${metrics.angleRad}rad` },
-                        { translateY: -1 },
-                    ],
+                    transform: [{ rotate: `${metrics.angleRad}rad` }],
                 },
             ]}
         />
@@ -46,11 +48,11 @@ export function RoadmapPath({
 const styles = StyleSheet.create({
     line: {
         position: "absolute",
-        height: 2,
+        height: 0,
         borderRadius: 999,
         borderStyle: "dashed",
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.16)",
+        borderColor: "rgba(255,255,255,0.18)",
         opacity: 0.9,
     },
 });

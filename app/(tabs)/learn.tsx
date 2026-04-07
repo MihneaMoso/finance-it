@@ -68,9 +68,10 @@ export default function LearnScreen() {
         return [...nodes].sort((a, b) => a.order - b.order);
     }, [nodes]);
 
-    // Layout: each "island" is placed inside a large map area.
-    const MAP_HEIGHT = 1200;
+    // Layout: each island is placed inside a map area.
     const MAP_WIDTH = Math.min(windowWidth, 520);
+    const MAP_PADDING_TOP = 70;
+    const MAP_PADDING_BOTTOM = 140;
 
     const pointFor = useCallback(
         (n: LessonNodeType) => {
@@ -78,11 +79,18 @@ export default function LearnScreen() {
             const yNorm = n.ui?.y ?? 0;
             return {
                 x: xNorm * MAP_WIDTH,
-                y: yNorm * MAP_HEIGHT,
+                y: MAP_PADDING_TOP + yNorm * 1000,
             };
         },
-        [MAP_HEIGHT, MAP_WIDTH],
+        [MAP_PADDING_TOP, MAP_WIDTH],
     );
+
+    // Compute map height from bottom-most node so content doesn’t feel scattered.
+    const mapHeight = useMemo(() => {
+        const ys = sortedNodes.map((n) => pointFor(n).y);
+        const maxY = ys.length ? Math.max(...ys) : 800;
+        return Math.max(900, maxY + MAP_PADDING_BOTTOM);
+    }, [MAP_PADDING_BOTTOM, pointFor, sortedNodes]);
 
     const paths = useMemo(() => {
         const out: Array<{
@@ -135,25 +143,19 @@ export default function LearnScreen() {
                 contentContainerStyle={styles.content}
                 showsVerticalScrollIndicator={false}
             >
-                <View
-                    style={[
-                        styles.map,
-                        { width: MAP_WIDTH, height: MAP_HEIGHT },
-                    ]}
-                >
+                <View style={[styles.map, { width: MAP_WIDTH, height: mapHeight }]}>
                     {/* Chapter headers */}
                     {chapterMarkers.map((m) => (
                         <View
                             key={m.chapterId}
                             style={[
                                 styles.chapterHeader,
-                                { top: Math.max(0, m.y) },
+                                { top: Math.max(8, m.y) },
                             ]}
                         >
                             <View style={styles.chapterPill}>
                                 <ThemedText style={styles.chapterPillText}>
-                                    {t((s) => s.learn.chapter)}{" "}
-                                    {chapterTitleById.get(m.chapterId) ?? ""}
+                                    {t((s) => s.learn.chapter)} {chapterTitleById.get(m.chapterId) ?? ""}
                                 </ThemedText>
                             </View>
                         </View>
@@ -164,30 +166,21 @@ export default function LearnScreen() {
                         <RoadmapPath key={idx} from={p.from} to={p.to} />
                     ))}
 
-                    {/* Islands + nodes */}
+                    {/* Nodes */}
                     {sortedNodes.map((n) => {
                         const pt = pointFor(n);
-                        const islandSize = 98;
                         return (
                             <View
                                 key={n.id}
                                 style={[
-                                    styles.island,
+                                    styles.nodeSlot,
                                     {
-                                        width: islandSize,
-                                        height: islandSize,
-                                        left: pt.x - islandSize / 2,
-                                        top: pt.y - islandSize / 2,
+                                        left: pt.x,
+                                        top: pt.y,
                                     },
                                 ]}
                             >
-                                <View style={styles.islandInner} />
-                                <View style={styles.nodeOverlay}>
-                                    <LessonNode
-                                        node={n}
-                                        onPress={handlePress}
-                                    />
-                                </View>
+                                <LessonNode node={n} onPress={handlePress} />
                             </View>
                         );
                     })}
@@ -222,25 +215,9 @@ const styles = StyleSheet.create({
         borderColor: "rgba(255,255,255,0.06)",
         overflow: "hidden",
     },
-    island: {
+    nodeSlot: {
         position: "absolute",
-        borderRadius: 28,
-    },
-    islandInner: {
-        ...StyleSheet.absoluteFillObject,
-        borderRadius: 28,
-        backgroundColor: "rgba(34, 197, 94, 0.06)",
-        borderWidth: 2,
-        borderColor: "rgba(255,255,255,0.10)",
-        transform: [{ rotate: "-4deg" }],
-    },
-    nodeOverlay: {
-        position: "absolute",
-        left: -10,
-        right: -10,
-        top: -10,
-        bottom: -10,
-        justifyContent: "center",
+        transform: [{ translateX: -84 }, { translateY: -52 }],
     },
     chapterHeader: {
         position: "absolute",

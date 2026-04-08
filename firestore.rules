@@ -1,0 +1,37 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default: deny everything
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Public, read-only learning content (safe to ship client-side)
+    match /questions/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /flashcards/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /lessons/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /simulations/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // User documents: locked down (no backend/Firebase Auth bridge)
+    match /users/{id} {
+      allow read, write: if false;
+    }
+  }
+}

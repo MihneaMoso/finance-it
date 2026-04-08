@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "questions": [
+    {
+      "id": "q_compound_interest_01",
+      "type": "mcq",
+      "conceptId": "compound_interest",
+      "difficulty": "easy",
+      "questionText": {
+        "en": "If you invest $100 at 10% interest compounded yearly, what is the balance after 2 years?",
+        "ro": "Dacă investești 100$ la 10% dobândă compusă anual, care este soldul după 2 ani?"
+      },
+      "options": {
+        "en": ["$110", "$120", "$121", "$130"],
+        "ro": ["110$", "120$", "121$", "130$"]
+      },
+      "correctIndex": 2
+    },
+    {
+      "id": "q_inflation_01",
+      "type": "numeric",
+      "conceptId": "inflation",
+      "difficulty": "medium",
+      "questionText": {
+        "en": "If inflation is 3% per year, what is the real value of $100 after 1 year (approx.)?",
+        "ro": "Dacă inflația este 3% pe an, care este valoarea reală a 100$ după 1 an (aprox.)?"
+      },
+      "numeric": {
+        "correctAnswer": 97,
+        "tolerance": 1
+      }
+    }
+  ]
+}

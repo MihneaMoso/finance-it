@@ -1,22 +1,3 @@
-/**
- * LearningProfileService — Manages the user's learning profile.
- *
- * Responsibilities:
- * - Initialize a default learning profile
- * - Update the profile after every question or flashcard interaction
- * - Provide summarized feature vectors for future ML consumption
- * - Expose concept-level statistics for the mistake-driven algorithm
- *
- * Persistence:
- * TODO: Persist profile to AsyncStorage for cross-session retention.
- * Currently in-memory only — resets on app restart.
- *
- * ML Readiness:
- * - getFeatureVector() returns a normalized numeric array
- * - Data collection is separated from decision logic
- * - Ranking logic is stubbed in UserRankingService
- */
-
 import type {
     AnswerEvent,
     ConceptID,
@@ -29,7 +10,6 @@ import type {
 
 import { updateUserStats } from "@/services/UserService";
 
-// ─── Default Profile Factory ─────────────────────────────────────────────────
 
 function createDefaultProfile(): UserLearningProfile {
     return {
@@ -54,7 +34,6 @@ function createDefaultConceptStats(): ConceptStats {
     };
 }
 
-// ─── Singleton Learning Profile ──────────────────────────────────────────────
 
 /**
  * In-memory learning profile.
@@ -62,19 +41,16 @@ function createDefaultConceptStats(): ConceptStats {
  */
 let profile: UserLearningProfile = createDefaultProfile();
 
-// ─── Profile Access ──────────────────────────────────────────────────────────
 
-/** Returns the current learning profile (read-only snapshot) */
+
 export function getProfile(): Readonly<UserLearningProfile> {
     return profile;
 }
 
-/** Resets the profile to defaults. Useful for testing or account switching. */
 export function resetProfile(): void {
     profile = createDefaultProfile();
 }
 
-// ─── Profile Update ──────────────────────────────────────────────────────────
 
 /**
  * Updates the learning profile after a user answers a question or flashcard.

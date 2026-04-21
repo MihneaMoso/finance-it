@@ -23,13 +23,18 @@ import { FlatList, StyleSheet, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { QuestionCard } from "@/components/QuestionCard";
-import { getQuestionBatch } from "@/services/QuestionService";
+import {
+    getQuestionBatch,
+    setActiveUserIdForRecommendations,
+} from "@/services/QuestionService";
 import type { ResolvedQuestion } from "@/types/questions";
+import { useUser } from "@clerk/clerk-expo";
 
 /** Number of questions to load per batch */
 const BATCH_SIZE = 10;
 
 export default function HomeScreen() {
+    const { user } = useUser();
     const { height: windowHeight } = useWindowDimensions();
     const insets = useSafeAreaInsets();
 
@@ -41,6 +46,10 @@ export default function HomeScreen() {
         getQuestionBatch(BATCH_SIZE),
     );
     const isLoadingMore = useRef(false);
+
+    React.useEffect(() => {
+        setActiveUserIdForRecommendations(user?.id ?? null);
+    }, [user?.id]);
 
     /**
      * Load more questions when the user scrolls near the end.

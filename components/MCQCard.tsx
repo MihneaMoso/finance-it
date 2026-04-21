@@ -16,10 +16,11 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import {
     isStruggledConcept,
-    recordAnswer,
+    recordAnswerAndSync,
 } from "@/services/LearningProfileService";
 import { flagConceptForRevisit } from "@/services/QuestionService";
 import type { MCQQuestion } from "@/types/questions";
+import { useUser } from "@clerk/clerk-expo";
 
 type MCQCardProps = {
     question: MCQQuestion;
@@ -30,6 +31,7 @@ type MCQCardProps = {
 export function MCQCard({ question, contextHint }: MCQCardProps) {
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
     const startTimeRef = useRef<number>(Date.now());
+    const { user } = useUser();
 
     const isAnswered = selectedIndex !== null;
     const isCorrect = selectedIndex === question.correctIndex;
@@ -47,14 +49,17 @@ export function MCQCard({ question, contextHint }: MCQCardProps) {
         setSelectedIndex(index);
 
         // Report to learning profile
-        recordAnswer({
-            questionId: question.id,
-            conceptId: question.conceptId,
-            difficulty: question.difficulty,
-            correct,
-            responseTimeMs,
-            questionType: "mcq",
-        });
+        void recordAnswerAndSync(
+            {
+                questionId: question.id,
+                conceptId: question.conceptId,
+                difficulty: question.difficulty,
+                correct,
+                responseTimeMs,
+                questionType: "mcq",
+            },
+            user?.id,
+        );
 
         // Flag for revisit if incorrect
         if (!correct) {

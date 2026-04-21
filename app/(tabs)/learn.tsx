@@ -64,7 +64,6 @@ export default function LearnScreen() {
         return [...nodes].sort((a, b) => a.order - b.order);
     }, [nodes]);
 
-   
     const MAP_WIDTH = Math.min(windowWidth, 520);
     const MAP_PADDING_TOP = 70;
     const MAP_PADDING_BOTTOM = 140;
@@ -88,10 +87,10 @@ export default function LearnScreen() {
     }, [MAP_PADDING_BOTTOM, pointFor, sortedNodes]);
 
     const paths = useMemo(() => {
-        const out: Array<{
+        const out: {
             from: { x: number; y: number };
             to: { x: number; y: number };
-        }> = [];
+        }[] = [];
         for (let i = 1; i < sortedNodes.length; i++) {
             out.push({
                 from: pointFor(sortedNodes[i - 1]),
@@ -110,7 +109,7 @@ export default function LearnScreen() {
     }, [lang]);
 
     const chapterMarkers = useMemo(() => {
-        const markers: Array<{ chapterId: string; y: number }> = [];
+        const markers: { chapterId: string; y: number }[] = [];
         const seen = new Set<string>();
         for (const n of sortedNodes) {
             if (seen.has(n.chapterId)) continue;
@@ -162,12 +161,10 @@ export default function LearnScreen() {
                         </View>
                     ))}
 
-                    
                     {paths.map((p, idx) => (
                         <RoadmapPath key={idx} from={p.from} to={p.to} />
                     ))}
 
-                    
                     {sortedNodes.map((n) => {
                         const pt = pointFor(n);
                         return (

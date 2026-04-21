@@ -22,10 +22,11 @@ import { ThemedText } from "@/components/themed-text";
 import { flashcardResponseToAnswerEvent } from "@/services/FlashcardService";
 import {
     isStruggledConcept,
-    recordAnswer,
+    recordAnswerAndSync,
 } from "@/services/LearningProfileService";
 import { flagConceptForRevisit } from "@/services/QuestionService";
 import type { Flashcard, FlashcardResponse } from "@/types/questions";
+import { useUser } from "@clerk/clerk-expo";
 
 type FlashcardCardProps = {
     flashcard: Flashcard;
@@ -34,6 +35,7 @@ type FlashcardCardProps = {
 
 export function FlashcardCard({ flashcard, onNext }: FlashcardCardProps) {
     const { t, i18n } = useTranslation();
+    const { user } = useUser();
 
     const [isFlipped, setIsFlipped] = useState(false);
     const [hasResponded, setHasResponded] = useState(false);
@@ -66,7 +68,7 @@ export function FlashcardCard({ flashcard, onNext }: FlashcardCardProps) {
             timeSpentMs,
         );
 
-        recordAnswer(event);
+        void recordAnswerAndSync(event, user?.id);
 
         // Flag for revisit if user didn't know
         if (response === "didnt_know") {

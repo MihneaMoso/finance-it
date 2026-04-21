@@ -11,6 +11,7 @@
  * - Disables re-submission after first attempt
  */
 
+import { useUser } from "@clerk/clerk-expo";
 import React, { useRef, useState } from "react";
 import {
     Keyboard,
@@ -23,25 +24,22 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import {
     isStruggledConcept,
-    recordAnswer,
+    recordAnswerAndSync,
 } from "@/services/LearningProfileService";
 import { flagConceptForRevisit } from "@/services/QuestionService";
+import type { ResolvedQuestion } from "@/types/questions";
+
+type NumericQuestion = Extract<ResolvedQuestion, { type: "numeric" }>;
 
 type NumericCardProps = {
-    question: {
-        id: string;
-        type: "numeric";
-        questionText: string;
-        correctAnswer: number;
-        tolerance: number;
-        conceptId: string;
-        difficulty: "easy" | "medium" | "hard";
-    };
+    question: NumericQuestion;
     /** Optional hint text shown above the question */
     contextHint?: string | null;
 };
 
 export function NumericCard({ question, contextHint }: NumericCardProps) {
+    const { user } = useUser();
+
     const [inputValue, setInputValue] = useState("");
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [isCorrect, setIsCorrect] = useState(false);
@@ -68,15 +66,20 @@ export function NumericCard({ question, contextHint }: NumericCardProps) {
         setIsCorrect(correct);
         setIsSubmitted(true);
 
-        // Report to learning profile
-        recordAnswer({
-            questionId: question.id,
-            conceptId: question.conceptId,
-            difficulty: question.difficulty,
-            correct,
-            responseTimeMs,
-            questionType: "numeric",
-        });
+        // Report to learning profile (+ remote logging if configured)
+        void recordAnswerAndSync(
+            {
+                questionId: question.id,
+                conceptId: question.conceptId,
+                difficulty: question.difficulty,
+                correct,
+                responseTimeMs,
+                questionType: "numeric",
+                source: "feed",
+                timestamp: Date.now(),
+            },
+            user?.id,
+        );
 
         // Flag for revisit if incorrect
         if (!correct) {

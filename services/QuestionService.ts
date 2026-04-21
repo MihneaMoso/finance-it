@@ -27,6 +27,94 @@ import type {
 } from "@/types/questions";
 
 import { getProfile } from "@/services/LearningProfileService";
+import { recommendConcepts } from "@/services/MLService";
+
+// ─── ML Recommender (server-side) ───────────────────────────────────────────
+
+type MlCache = {
+    userId: string;
+    fetchedAt: number;
+    rankedConcepts: ConceptID[];
+    pCorrectByConcept?: Record<ConceptID, number>;
+};
+
+let activeUserId: string | null = null;
+let mlCache: MlCache | null = null;
+let mlInFlight: Promise<void> | null = null;
+
+const ML_CACHE_TTL_MS = 30_000;
+
+export function setActiveUserIdForRecommendations(userId: string | null): void {
+    activeUserId = userId;
+    if (!activeUserId || mlCache?.userId !== activeUserId) {
+        mlCache = null;
+    }
+}
+
+function getMlWeaknessByConcept(
+    conceptIds: ConceptID[],
+): Record<ConceptID, number> | null {
+    if (!mlCache) return null;
+    if (mlCache.userId !== activeUserId) return null;
+    if (Date.now() - mlCache.fetchedAt > ML_CACHE_TTL_MS) return null;
+
+    const weakness: Record<ConceptID, number> = {};
+
+    // Preferred: use calibrated probabilities if provided
+    if (mlCache.pCorrectByConcept) {
+        for (const cid of conceptIds) {
+            const p = mlCache.pCorrectByConcept[cid];
+            if (typeof p === "number")
+                weakness[cid] = Math.max(0, Math.min(1, 1 - p));
+        }
+    }
+
+    // Fallback: derive a 0..1 weakness score from rank position
+    if (Object.keys(weakness).length === 0) {
+        const ranked = mlCache.rankedConcepts;
+        const n = ranked.length;
+        for (let i = 0; i < n; i++) {
+            const cid = ranked[i];
+            // rankedConcepts: weakest -> strongest
+            weakness[cid] = n <= 1 ? 1 : 1 - i / (n - 1);
+        }
+    }
+
+    return weakness;
+}
+
+function maybeRefreshMlCache(conceptIds: ConceptID[]): void {
+    if (!activeUserId) return;
+    if (mlInFlight) return;
+    if (
+        mlCache &&
+        mlCache.userId === activeUserId &&
+        Date.now() - mlCache.fetchedAt <= ML_CACHE_TTL_MS
+    ) {
+        return;
+    }
+
+    mlInFlight = (async () => {
+        try {
+            const resp = await recommendConcepts({
+                userId: activeUserId,
+                conceptIds,
+                timeoutMs: 180,
+            });
+
+            mlCache = {
+                userId: activeUserId,
+                fetchedAt: Date.now(),
+                rankedConcepts: resp.rankedConcepts,
+                pCorrectByConcept: resp.pCorrectByConcept,
+            };
+        } catch {
+            // ignore
+        } finally {
+            mlInFlight = null;
+        }
+    })();
+}
 
 // ─── Static MCQ Question Pool ────────────────────────────────────────────────
 
@@ -397,6 +485,17 @@ function scoreQuestion(
     return score;
 }
 
+function normalize01(values: number[]): { min: number; max: number } {
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
+    for (const v of values) {
+        if (v < min) min = v;
+        if (v > max) max = v;
+    }
+    if (!isFinite(min) || !isFinite(max)) return { min: 0, max: 0 };
+    return { min, max };
+}
+
 // ─── Question Selection Logic ────────────────────────────────────────────────
 
 /** Tracks the ID of the last served question to prevent immediate repeats */
@@ -430,6 +529,12 @@ export function getNextQuestion(): ResolvedQuestion {
     const profile = getProfile();
     const allQuestions = getAllQuestions();
 
+    // Kick off (non-blocking) ML refresh so the next questions can use it.
+    const allConceptIds = Array.from(
+        new Set(allQuestions.map((q) => q.conceptId)),
+    );
+    maybeRefreshMlCache(allConceptIds);
+
     questionsSinceMistake += 1;
 
     // Check if we should force-reintroduce a mistaken concept
@@ -452,11 +557,37 @@ export function getNextQuestion(): ResolvedQuestion {
         }
     }
 
-    // Score all questions
-    const scored = allQuestions.map((q) => ({
+    // Score all questions (heuristic)
+    const heuristicScored = allQuestions.map((q) => ({
         question: q,
-        score: scoreQuestion(q, profile),
+        heuristicScore: scoreQuestion(q, profile),
     }));
+
+    const mlWeaknessByConcept = getMlWeaknessByConcept(allConceptIds);
+
+    // Fallback: preserve original behavior when ML isn't available yet.
+    const scored = !mlWeaknessByConcept
+        ? heuristicScored.map((s) => ({
+              question: s.question,
+              score: s.heuristicScore,
+          }))
+        : (() => {
+              const { min: hMin, max: hMax } = normalize01(
+                  heuristicScored.map((s) => s.heuristicScore),
+              );
+
+              return heuristicScored.map((s) => {
+                  const hNorm =
+                      hMax > hMin
+                          ? (s.heuristicScore - hMin) / (hMax - hMin)
+                          : 0.5;
+
+                  const ml = mlWeaknessByConcept[s.question.conceptId] ?? 0.5;
+
+                  const finalScore = ml * 0.7 + hNorm * 0.3;
+                  return { question: s.question, score: finalScore };
+              });
+          })();
 
     // Sort by score descending
     scored.sort((a, b) => b.score - a.score);

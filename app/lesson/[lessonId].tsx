@@ -12,7 +12,7 @@ import {
     consumeHeart,
     getHeartsState,
 } from "@/services/HeartsService";
-import { recordAnswer } from "@/services/LearningProfileService";
+import { recordAnswerAndSync } from "@/services/LearningProfileService";
 import { completeNode, getLessonById } from "@/services/LessonService";
 import type {
     HeartsState,
@@ -20,8 +20,10 @@ import type {
     LessonContentSlide,
     Question,
 } from "@/types/questions";
+import { useUser } from "@clerk/clerk-expo";
 
 export default function LessonScreen() {
+    const { user } = useUser();
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { lessonId } = useLocalSearchParams<{ lessonId: string }>();
@@ -117,14 +119,19 @@ export default function LessonScreen() {
         if (!submitted) {
             const isCorrect = selectedIndex === currentQ.correctIndex;
 
-            recordAnswer({
-                conceptId: currentQ.conceptId,
-                difficulty: currentQ.difficulty,
-                correct: isCorrect,
-                responseTimeMs: 0,
-                timestamp: Date.now(),
-                source: "lesson",
-            });
+            void recordAnswerAndSync(
+                {
+                    questionId: currentQ.id,
+                    conceptId: currentQ.conceptId,
+                    difficulty: currentQ.difficulty,
+                    correct: isCorrect,
+                    responseTimeMs: 0,
+                    timestamp: Date.now(),
+                    source: "lesson",
+                    questionType: "mcq",
+                },
+                user?.id,
+            );
 
             if (!isCorrect) {
                 const allow = await canContinue();
@@ -165,10 +172,10 @@ export default function LessonScreen() {
         lesson,
         quizCount,
         quizIndex,
-        questions,
         selectedIndex,
         submitted,
         totalSteps,
+        user?.id,
     ]);
 
     if (!lesson) {

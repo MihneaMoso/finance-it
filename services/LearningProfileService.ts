@@ -8,8 +8,8 @@ import type {
     UserSkillScore,
 } from "@/types/questions";
 
+import { recordInteraction } from "@/services/MLService";
 import { updateUserStats } from "@/services/UserService";
-
 
 function createDefaultProfile(): UserLearningProfile {
     return {
@@ -34,14 +34,11 @@ function createDefaultConceptStats(): ConceptStats {
     };
 }
 
-
 /**
  * In-memory learning profile.
  * TODO: Load from AsyncStorage on init, save after each update.
  */
 let profile: UserLearningProfile = createDefaultProfile();
-
-
 
 export function getProfile(): Readonly<UserLearningProfile> {
     return profile;
@@ -50,7 +47,6 @@ export function getProfile(): Readonly<UserLearningProfile> {
 export function resetProfile(): void {
     profile = createDefaultProfile();
 }
-
 
 /**
  * Updates the learning profile after a user answers a question or flashcard.
@@ -217,6 +213,16 @@ export async function recordAnswerAndSync(
     if (!clerkUserId) return;
 
     try {
+        // Preferred MVP path: send interaction to the Python ML service.
+        // The service uses Firebase Admin SDK to write to Firestore (no client writes needed).
+        await recordInteraction({ userId: clerkUserId, event });
+    } catch {
+        // ignore
+    }
+
+    try {
+        // Legacy path (direct Firestore client write).
+        // Note: current firestore.rules deny client writes unless you add a Firebase Auth bridge.
         await updateUserStats({
             clerkUserId,
             deltaTotalAnswered: 1,

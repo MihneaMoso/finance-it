@@ -13,15 +13,17 @@ import {
     consumeHeart,
     getHeartsState,
 } from "@/services/HeartsService";
-import { recordAnswer } from "@/services/LearningProfileService";
+import { recordAnswerAndSync } from "@/services/LearningProfileService";
 import { getSimulationById } from "@/services/SimulationService";
 import type {
     HeartsState,
     Simulation,
     SimulationStep,
 } from "@/types/questions";
+import { useUser } from "@clerk/clerk-expo";
 
 export default function SimulationScreen() {
+    const { user } = useUser();
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { simulationId } = useLocalSearchParams<{ simulationId: string }>();
@@ -57,14 +59,19 @@ export default function SimulationScreen() {
 
             // Simulation mistakes should be higher-weight signals in the future.
             // For now they feed into the same learning profile pipeline.
-            recordAnswer({
-                conceptId: step.question.conceptId,
-                difficulty: step.question.difficulty,
-                correct: result.correct,
-                responseTimeMs: result.responseTimeMs,
-                timestamp: Date.now(),
-                source: "simulation",
-            });
+            void recordAnswerAndSync(
+                {
+                    questionId: step.question.id,
+                    conceptId: step.question.conceptId,
+                    difficulty: step.question.difficulty,
+                    correct: result.correct,
+                    responseTimeMs: result.responseTimeMs,
+                    timestamp: Date.now(),
+                    source: "simulation",
+                    questionType: step.question.type,
+                },
+                user?.id,
+            );
 
             if (!result.correct) {
                 const allow = await canContinue();
@@ -81,7 +88,7 @@ export default function SimulationScreen() {
 
             setStepAnswered(true);
         },
-        [sim, step],
+        [sim, step, user?.id],
     );
 
     const onContinue = useCallback(() => {

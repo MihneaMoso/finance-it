@@ -76,19 +76,17 @@ export default function LessonScreen() {
         async (passed: boolean, score: number) => {
             if (!lesson) return;
             if (passed) {
-                await completeNode(lesson.id);
+                try {
+                    await completeNode(lesson.id);
+                } catch (err) {
+                    // If persisting completion fails (AsyncStorage, etc.), still allow the user
+                    // to exit the lesson. We don't want to trap them on the last question.
+                    console.warn("Failed to persist lesson completion", err);
+                }
             }
 
-            Alert.alert(
-                `${t((s) => s.lesson.score)}: ${Math.round(score)}%`,
-                passed ? t((s) => s.lesson.pass) : t((s) => s.lesson.fail),
-                [
-                    {
-                        text: t((s) => s.common.ok),
-                        onPress: () => router.replace("/(tabs)/learn"),
-                    },
-                ],
-            );
+            // Exit the lesson the same way as the back button.
+            router.back();
         },
         [lesson, router],
     );
@@ -96,9 +94,22 @@ export default function LessonScreen() {
     const onContinue = useCallback(async () => {
         if (!lesson) return;
 
+        // Lesson is complete (or we somehow advanced past the end):
+        // make Continue behave like the back button.
+        if (stepIndex >= totalSteps) {
+            router.back();
+            return;
+        }
+
         // Slide mode
         if (isSlide) {
-            setStepIndex((i) => Math.min(i + 1, totalSteps));
+            const isLastSlide = stepIndex + 1 >= slidesCount;
+            if (isLastSlide && quizCount === 0) {
+                await finishLesson(true, 100);
+                return;
+            }
+
+            setStepIndex((i) => Math.min(i + 1, Math.max(totalSteps - 1, 0)));
             return;
         }
 
@@ -159,16 +170,17 @@ export default function LessonScreen() {
 
         // Second tap: advance
         const isLastQuestion = quizIndex + 1 >= quizCount;
-
-        setSubmitted(false);
-        setSelectedIndex(null);
-        setStepIndex((i) => i + 1);
-
         if (isLastQuestion) {
             const score =
                 quizCount > 0 ? (correctCount / quizCount) * 100 : 100;
             await finishLesson(score >= 70, score);
+            return;
         }
+
+        setSubmitted(false);
+        setSelectedIndex(null);
+
+        setStepIndex((i) => i + 1);
     }, [
         correctCount,
         currentQ,
@@ -177,7 +189,10 @@ export default function LessonScreen() {
         lesson,
         quizCount,
         quizIndex,
+        router,
         selectedIndex,
+        slidesCount,
+        stepIndex,
         submitted,
         totalSteps,
         user?.id,
@@ -200,6 +215,7 @@ export default function LessonScreen() {
     }
 
     const progressLabel = `${Math.min(stepIndex + 1, totalSteps)}/${totalSteps}`;
+    const isFinalStep = totalSteps > 0 && stepIndex >= totalSteps - 1;
 
     return (
         <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -209,7 +225,6 @@ export default function LessonScreen() {
                     title: t((s) => s.learn.lesson),
                     headerShown: true,
                     headerStyle: { backgroundColor: "#0f1115" },
-                    headerTintColor: "#fff",
                     headerRight: () => headerRight,
                 }}
             />
@@ -302,7 +317,9 @@ export default function LessonScreen() {
                 >
                     <ThemedText style={styles.ctaText}>
                         {submitted
-                            ? t((s) => s.lesson.next)
+                            ? isFinalStep
+                                ? t((s) => s.learn.continue)
+                                : t((s) => s.lesson.next)
                             : t((s) => s.learn.continue)}
                     </ThemedText>
                 </Pressable>

@@ -21,6 +21,7 @@ const MAPPING = {
     "paperplane.fill": "send",
     "person.fill": "person",
     "rectangle.stack.fill": "style",
+    sparkles: "auto-awesome",
     "chevron.left.forwardslash.chevron.right": "code",
     "chevron.right": "chevron-right",
 } as IconMapping;

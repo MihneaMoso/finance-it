@@ -82,7 +82,12 @@ export default function LessonScreen() {
             Alert.alert(
                 `${t((s) => s.lesson.score)}: ${Math.round(score)}%`,
                 passed ? t((s) => s.lesson.pass) : t((s) => s.lesson.fail),
-                [{ text: t((s) => s.common.ok), onPress: () => router.back() }],
+                [
+                    {
+                        text: t((s) => s.common.ok),
+                        onPress: () => router.replace("/(tabs)/learn"),
+                    },
+                ],
             );
         },
         [lesson, router],
@@ -235,8 +240,14 @@ export default function LessonScreen() {
                                 const isPicked = idx === selectedIndex;
                                 const showFeedback = submitted;
 
+                                const selectedBg = "rgba(37, 99, 235, 0.25)";
+                                const selectedBorder =
+                                    "rgba(37, 99, 235, 0.85)";
+
                                 const bg = !showFeedback
-                                    ? "rgba(255,255,255,0.10)"
+                                    ? isPicked
+                                        ? selectedBg
+                                        : "rgba(255,255,255,0.10)"
                                     : isCorrect
                                       ? "rgba(34,197,94,0.22)"
                                       : isPicked
@@ -244,7 +255,9 @@ export default function LessonScreen() {
                                         : "rgba(255,255,255,0.06)";
 
                                 const border = !showFeedback
-                                    ? "rgba(255,255,255,0.15)"
+                                    ? isPicked
+                                        ? selectedBorder
+                                        : "rgba(255,255,255,0.15)"
                                     : isCorrect
                                       ? "#22c55e"
                                       : isPicked

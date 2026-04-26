@@ -114,7 +114,9 @@ export default function LearnScreen() {
         for (const n of sortedNodes) {
             if (seen.has(n.chapterId)) continue;
             seen.add(n.chapterId);
-            markers.push({ chapterId: n.chapterId, y: pointFor(n).y - 40 });
+            // Position chapter pill above the first node in the chapter.
+            // Nodes are translated up by ~52px, so we offset more to avoid overlap.
+            markers.push({ chapterId: n.chapterId, y: pointFor(n).y - 96 });
         }
         return markers;
     }, [pointFor, sortedNodes]);
@@ -147,6 +149,7 @@ export default function LearnScreen() {
                     {chapterMarkers.map((m) => (
                         <View
                             key={m.chapterId}
+                            pointerEvents="none"
                             style={[
                                 styles.chapterHeader,
                                 { top: Math.max(8, m.y) },
@@ -216,12 +219,14 @@ const styles = StyleSheet.create({
     nodeSlot: {
         position: "absolute",
         transform: [{ translateX: -84 }, { translateY: -52 }],
+        zIndex: 2,
     },
     chapterHeader: {
         position: "absolute",
         left: 0,
         right: 0,
         paddingHorizontal: 14,
+        zIndex: 1,
     },
     chapterPill: {
         alignSelf: "center",

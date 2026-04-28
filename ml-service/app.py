@@ -14,6 +14,21 @@ from utils.firestore_client import get_db
 app = Flask(__name__)
 
 
+def _default_streak(today: str) -> Dict[str, Any]:
+    return {"current": 0, "longest": 0, "lastActiveDate": today}
+
+
+def _is_yyyy_mm_dd(s: Any) -> bool:
+    if not isinstance(s, str):
+        return False
+    # YYYY-MM-DD
+    if len(s) != 10:
+        return False
+    if s[4] != "-" or s[7] != "-":
+        return False
+    return s[:4].isdigit() and s[5:7].isdigit() and s[8:10].isdigit()
+
+
 def _json_error(message: str, status: int = 400):
     return jsonify({"error": message}), status
 
@@ -180,6 +195,77 @@ def record_interaction():
 
     try:
         txn_fn(db.transaction())
+    except Exception as e:
+        return _json_error(str(e), 500)
+
+    return jsonify({"ok": True})
+
+
+@app.get("/streak/<user_id>")
+def get_streak(user_id: str):
+    if not isinstance(user_id, str) or not user_id:
+        return _json_error("userId is required")
+
+    db = get_db()
+    user_ref = db.collection("users").document(user_id)
+    snap = user_ref.get()
+    doc = snap.to_dict() or {}
+    streak = doc.get("streak") if isinstance(doc.get("streak"), dict) else None
+
+    if not isinstance(streak, dict):
+        return jsonify({"ok": True, "streak": None})
+
+    return jsonify(
+        {
+            "ok": True,
+            "streak": {
+                "current": int(streak.get("current") or 0),
+                "longest": int(streak.get("longest") or 0),
+                "lastActiveDate": str(streak.get("lastActiveDate") or ""),
+            },
+        }
+    )
+
+
+@app.post("/streak/upsert")
+def upsert_streak():
+    body = request.get_json(silent=True) or {}
+
+    user_id = body.get("userId")
+    streak = body.get("streak")
+
+    if not isinstance(user_id, str) or not user_id:
+        return _json_error("userId is required")
+    if not isinstance(streak, dict):
+        return _json_error("streak must be an object")
+
+    current = streak.get("current")
+    longest = streak.get("longest")
+    last_active_date = streak.get("lastActiveDate")
+
+    if not isinstance(current, int) or current < 0:
+        return _json_error("streak.current must be a non-negative integer")
+    if not isinstance(longest, int) or longest < 0:
+        return _json_error("streak.longest must be a non-negative integer")
+    if not _is_yyyy_mm_dd(last_active_date):
+        return _json_error("streak.lastActiveDate must be YYYY-MM-DD")
+
+    db = get_db()
+    user_ref = db.collection("users").document(user_id)
+
+    try:
+        user_ref.set(
+            {
+                "clerkUserId": user_id,
+                "streak": {
+                    "current": current,
+                    "longest": max(longest, current),
+                    "lastActiveDate": last_active_date,
+                },
+                "updatedAt": firestore.SERVER_TIMESTAMP,
+            },
+            merge=True,
+        )
     except Exception as e:
         return _json_error(str(e), 500)
 

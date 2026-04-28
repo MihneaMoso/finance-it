@@ -80,6 +80,11 @@ export type FirestoreUser = {
         correctAnswers: number;
         avgResponseTime: number;
     };
+    streak?: {
+        current: number;
+        longest: number;
+        lastActiveDate: string; // YYYY-MM-DD
+    };
 };
 
 // ─── In-memory caches ───────────────────────────────────────────────────────

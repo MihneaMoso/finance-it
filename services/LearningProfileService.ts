@@ -9,6 +9,8 @@ import type {
 } from "@/types/questions";
 
 import { recordInteraction } from "@/services/MLService";
+import { triggerAchievementNotification } from "@/services/NotificationService";
+import { recordStreakActivity } from "@/services/StreakService";
 import { updateUserStats } from "@/services/UserService";
 
 function createDefaultProfile(): UserLearningProfile {
@@ -211,6 +213,21 @@ export async function recordAnswerAndSync(
     recordAnswer(event);
 
     if (!clerkUserId) return;
+
+    // Streak counts any meaningful learning activity.
+    // Keep this best-effort and never block the learning flow.
+    try {
+        const res = await recordStreakActivity({
+            userId: clerkUserId,
+            type: event.questionType === "flashcard" ? "flashcards" : "answer",
+        });
+
+        if (res.newRecord) {
+            void triggerAchievementNotification();
+        }
+    } catch {
+        // ignore
+    }
 
     try {
         // Preferred MVP path: send interaction to the Python ML service.

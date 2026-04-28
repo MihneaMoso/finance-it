@@ -5,6 +5,12 @@ export type RecommendConceptsResponse = {
     pCorrectByConcept?: Record<ConceptID, number>;
 };
 
+export type Streak = {
+    current: number;
+    longest: number;
+    lastActiveDate: string; // YYYY-MM-DD (local)
+};
+
 function getBaseUrl(): string | null {
     const raw = process.env.EXPO_PUBLIC_ML_SERVICE_URL;
     if (!raw) return null;
@@ -31,6 +37,35 @@ async function postJson<T>(
                 "content-type": "application/json",
             },
             body: JSON.stringify(body),
+            signal: controller.signal,
+        });
+
+        if (!res.ok) {
+            const text = await res.text().catch(() => "");
+            throw new Error(`ML service error (${res.status}): ${text}`);
+        }
+
+        return (await res.json()) as T;
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
+async function getJson<T>(path: string, timeoutMs: number): Promise<T> {
+    const baseUrl = getBaseUrl();
+    if (!baseUrl) {
+        throw new Error("Missing EXPO_PUBLIC_ML_SERVICE_URL");
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+        const res = await fetch(`${baseUrl}${path}`, {
+            method: "GET",
+            headers: {
+                "content-type": "application/json",
+            },
             signal: controller.signal,
         });
 
@@ -87,4 +122,30 @@ export async function recordInteraction(params: {
         },
         params.timeoutMs ?? 180,
     );
+}
+
+export async function upsertStreak(params: {
+    userId: string;
+    streak: Streak;
+    timeoutMs?: number;
+}): Promise<void> {
+    await postJson<{ ok: boolean }>(
+        "/streak/upsert",
+        {
+            userId: params.userId,
+            streak: params.streak,
+        },
+        params.timeoutMs ?? 180,
+    );
+}
+
+export async function fetchStreak(params: {
+    userId: string;
+    timeoutMs?: number;
+}): Promise<Streak | null> {
+    const res = await getJson<{ ok: boolean; streak?: Streak }>(
+        `/streak/${encodeURIComponent(params.userId)}`,
+        params.timeoutMs ?? 180,
+    );
+    return res.streak ?? null;
 }

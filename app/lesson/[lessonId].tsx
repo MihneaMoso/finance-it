@@ -14,6 +14,8 @@ import {
 } from "@/services/HeartsService";
 import { recordAnswerAndSync } from "@/services/LearningProfileService";
 import { completeNode, getLessonById } from "@/services/LessonService";
+import { recordStreakActivity } from "@/services/StreakService";
+import { syncNextLessonWidget } from "@/services/WidgetSyncService";
 import type {
     HeartsState,
     Lesson,
@@ -78,6 +80,9 @@ export default function LessonScreen() {
             if (passed) {
                 try {
                     await completeNode(lesson.id);
+
+                    // Keep widget state in sync with completion.
+                    void syncNextLessonWidget();
                 } catch (err) {
                     // If persisting completion fails (AsyncStorage, etc.), still allow the user
                     // to exit the lesson. We don't want to trap them on the last question.
@@ -85,10 +90,22 @@ export default function LessonScreen() {
                 }
             }
 
+            // Completing a lesson counts as streak activity.
+            try {
+                if (user?.id) {
+                    await recordStreakActivity({
+                        userId: user.id,
+                        type: "lesson",
+                    });
+                }
+            } catch {
+                // ignore
+            }
+
             // Exit the lesson the same way as the back button.
             router.back();
         },
-        [lesson, router],
+        [lesson, router, user?.id],
     );
 
     const onContinue = useCallback(async () => {

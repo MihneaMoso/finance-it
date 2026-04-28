@@ -239,6 +239,10 @@ const FLASHCARD_POOL: Flashcard[] = [
     },
 ];
 
+export function getFlashcardPool(): Flashcard[] {
+    return FLASHCARD_POOL;
+}
+
 // ─── Selection Logic ─────────────────────────────────────────────────────────
 
 let lastFlashcardId: string | null = null;

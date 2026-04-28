@@ -23,10 +23,12 @@ import { FlatList, StyleSheet, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { QuestionCard } from "@/components/QuestionCard";
+import { StreakBadge } from "@/components/StreakBadge";
 import {
     getQuestionBatch,
     setActiveUserIdForRecommendations,
 } from "@/services/QuestionService";
+import { getStreak, subscribeToStreak } from "@/services/StreakService";
 import type { ResolvedQuestion } from "@/types/questions";
 import { useUser } from "@clerk/clerk-expo";
 
@@ -45,10 +47,35 @@ export default function HomeScreen() {
     const [questions, setQuestions] = useState<ResolvedQuestion[]>(() =>
         getQuestionBatch(BATCH_SIZE),
     );
+    const [streak, setStreak] = useState<Awaited<
+        ReturnType<typeof getStreak>
+    > | null>(null);
     const isLoadingMore = useRef(false);
 
     React.useEffect(() => {
         setActiveUserIdForRecommendations(user?.id ?? null);
+    }, [user?.id]);
+
+    React.useEffect(() => {
+        let cancelled = false;
+        if (!user?.id) {
+            setStreak(null);
+            return;
+        }
+
+        void (async () => {
+            const s = await getStreak(user.id);
+            if (!cancelled) setStreak(s);
+        })();
+
+        const unsub = subscribeToStreak((next) => {
+            if (!cancelled) setStreak(next);
+        });
+
+        return () => {
+            cancelled = true;
+            unsub();
+        };
     }, [user?.id]);
 
     /**
@@ -93,6 +120,13 @@ export default function HomeScreen() {
     return (
         <View style={styles.screen}>
             <StatusBar style="light" />
+            {streak && (
+                <StreakBadge
+                    compact
+                    streak={streak}
+                    style={[styles.streak, { top: insets.top + 10, right: 14 }]}
+                />
+            )}
             <FlatList
                 data={questions}
                 renderItem={renderItem}
@@ -121,6 +155,10 @@ const styles = StyleSheet.create({
     screen: {
         flex: 1,
         backgroundColor: "#0f1115",
+    },
+    streak: {
+        position: "absolute",
+        zIndex: 10,
     },
     cardContainer: {
         width: "100%",

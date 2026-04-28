@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemedText } from "@/components/themed-text";
+import { getStreak, subscribeToStreak } from "@/services/StreakService";
 import type { UserProfile } from "@/types/questions";
 import { useTranslation } from "react-i18next";
 
@@ -23,7 +24,10 @@ export default function AccountScreen() {
     const router = useRouter();
     const { t } = useTranslation();
 
-    
+    const [streak, setStreak] = React.useState<Awaited<
+        ReturnType<typeof getStreak>
+    > | null>(null);
+
     const [experienceLevel, setExperienceLevel] =
         useState<UserProfile["experienceLevel"]>("beginner");
     const [isEditing, setIsEditing] = useState(false);
@@ -48,6 +52,28 @@ export default function AccountScreen() {
     const displayEmail = user?.emailAddresses[0]?.emailAddress ?? "";
     const avatarInitial = displayName.charAt(0).toUpperCase();
 
+    React.useEffect(() => {
+        let cancelled = false;
+        if (!user?.id) {
+            setStreak(null);
+            return;
+        }
+
+        void (async () => {
+            const s = await getStreak(user.id);
+            if (!cancelled) setStreak(s);
+        })();
+
+        const unsub = subscribeToStreak((next) => {
+            if (!cancelled) setStreak(next);
+        });
+
+        return () => {
+            cancelled = true;
+            unsub();
+        };
+    }, [user?.id]);
+
     return (
         <View style={[styles.screen, { paddingTop: insets.top }]}>
             <StatusBar style="light" />
@@ -55,12 +81,10 @@ export default function AccountScreen() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                
                 <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
                     <LanguageSwitcher />
                 </View>
 
-                
                 <SignedOut>
                     <View style={styles.header}>
                         <View style={styles.avatarContainer}>
@@ -95,7 +119,6 @@ export default function AccountScreen() {
                     </TouchableOpacity>
                 </SignedOut>
 
-                
                 <SignedIn>
                     <View style={styles.header}>
                         <View style={styles.avatarContainer}>
@@ -111,7 +134,6 @@ export default function AccountScreen() {
                         </ThemedText>
                     </View>
 
-                    
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <ThemedText style={styles.sectionTitle}>
@@ -131,7 +153,6 @@ export default function AccountScreen() {
                             )}
                         </View>
 
-                        
                         <View style={styles.field}>
                             <ThemedText style={styles.fieldLabel}>
                                 {t("name")}
@@ -141,7 +162,6 @@ export default function AccountScreen() {
                             </ThemedText>
                         </View>
 
-                        
                         <View style={styles.field}>
                             <ThemedText style={styles.fieldLabel}>
                                 {t("email")}
@@ -151,7 +171,6 @@ export default function AccountScreen() {
                             </ThemedText>
                         </View>
 
-                        
                         <View style={styles.field}>
                             <ThemedText style={styles.fieldLabel}>
                                 {t("experienceLevel")}
@@ -189,7 +208,6 @@ export default function AccountScreen() {
                             )}
                         </View>
 
-                        
                         {isEditing && (
                             <View style={styles.editActions}>
                                 <TouchableOpacity
@@ -214,7 +232,6 @@ export default function AccountScreen() {
                         )}
                     </View>
 
-                    
                     <View style={styles.section}>
                         <ThemedText style={styles.sectionTitle}>
                             {t("stats")}
@@ -238,7 +255,7 @@ export default function AccountScreen() {
                             </View>
                             <View style={styles.statCard}>
                                 <ThemedText style={styles.statNumber}>
-                                    0
+                                    {streak ? streak.current : 0}
                                 </ThemedText>
                                 <ThemedText style={styles.statLabel}>
                                     {t("dayStreak")}
@@ -247,7 +264,6 @@ export default function AccountScreen() {
                         </View>
                     </View>
 
-                    
                     <View style={styles.signOutContainer}>
                         <SignOutButton />
                     </View>
@@ -266,7 +282,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         paddingBottom: 40,
     },
-    
+
     header: {
         alignItems: "center",
         marginTop: 24,
@@ -298,7 +314,7 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: "rgba(255, 255, 255, 0.5)",
     },
-    
+
     authButton: {
         paddingVertical: 14,
         borderRadius: 14,
@@ -330,7 +346,7 @@ const styles = StyleSheet.create({
         fontSize: 17,
         fontWeight: "700",
     },
-    
+
     section: {
         marginBottom: 28,
     },
@@ -351,7 +367,7 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         color: "#0a7ea4",
     },
-    
+
     field: {
         marginBottom: 16,
     },
@@ -377,7 +393,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 12,
     },
-    
+
     levelSelector: {
         flexDirection: "row",
         columnGap: 8,
@@ -403,7 +419,7 @@ const styles = StyleSheet.create({
     levelOptionTextActive: {
         color: "#0a7ea4",
     },
-    
+
     editActions: {
         flexDirection: "row",
         columnGap: 12,
@@ -435,7 +451,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "600",
     },
-    
+
     statsRow: {
         flexDirection: "row",
         columnGap: 12,
@@ -462,7 +478,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
         lineHeight: 16,
     },
-    
+
     signOutContainer: {
         alignItems: "center",
         marginTop: 8,

@@ -105,6 +105,7 @@ export default function AccountScreen() {
 
     React.useEffect(() => {
         if (!user?.id) return;
+        if (isEditing || isSaving) return;
 
         const initialName = persistedName || fallbackName;
         if (initialName) {
@@ -117,8 +118,14 @@ export default function AccountScreen() {
             : "beginner";
         setExperienceLevel(initialLevel);
         setEditLevel(initialLevel);
-        
-    }, [user?.id]);
+    }, [
+        fallbackName,
+        isEditing,
+        isSaving,
+        persistedExperienceLevelRaw,
+        persistedName,
+        user?.id,
+    ]);
 
     React.useEffect(() => {
         let cancelled = false;

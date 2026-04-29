@@ -1,4 +1,3 @@
-
 import { FALLBACK_ENABLED } from "@/services/ContentFallback";
 import { fetchSimulationById } from "@/services/FirestoreService";
 import type { Simulation } from "@/types/questions";
@@ -104,6 +103,206 @@ const SIMULATIONS: Record<string, Simulation> = {
             },
         ],
     },
+
+    "ch1-test": {
+        id: "ch1-test",
+        title: {
+            en: "Chapter 1 test",
+            ro: "Test capitol 1",
+        },
+        conceptIds: ["inflation", "budgeting"],
+        steps: [
+            {
+                id: "st-1",
+                type: "story",
+                content: {
+                    en: "Let’s test what you learned in Chapter 1.",
+                    ro: "Hai să testăm ce ai învățat în Capitolul 1.",
+                },
+                nextStepId: "st-2",
+            },
+            {
+                id: "st-2",
+                type: "question",
+                content: {
+                    en: "Question 1",
+                    ro: "Întrebarea 1",
+                },
+                question: {
+                    id: "ch1test-q1",
+                    type: "mcq",
+                    question:
+                        "Inflation causes the purchasing power of money to:",
+                    options: [
+                        "Increase",
+                        "Decrease",
+                        "Remain unchanged",
+                        "Fluctuate randomly",
+                    ],
+                    correctIndex: 1,
+                    conceptId: "inflation",
+                    difficulty: "easy",
+                },
+                nextStepId: "st-3",
+            },
+            {
+                id: "st-3",
+                type: "question",
+                content: {
+                    en: "Question 2",
+                    ro: "Întrebarea 2",
+                },
+                question: {
+                    id: "ch1test-q2",
+                    type: "mcq",
+                    question:
+                        "If grocery prices rise but your income stays the same, a good first step is to:",
+                    options: [
+                        "Ignore it",
+                        "Adjust your budget and reduce other spending",
+                        "Borrow money immediately",
+                        "Stop tracking expenses",
+                    ],
+                    correctIndex: 1,
+                    conceptId: "budgeting",
+                    difficulty: "easy",
+                },
+                nextStepId: "st-4",
+            },
+            {
+                id: "st-4",
+                type: "question",
+                content: {
+                    en: "Question 3",
+                    ro: "Întrebarea 3",
+                },
+                question: {
+                    id: "ch1test-q3",
+                    type: "mcq",
+                    question:
+                        "If inflation is 6% and your savings earn 2%, your purchasing power will most likely:",
+                    options: [
+                        "Increase",
+                        "Stay the same",
+                        "Decrease",
+                        "Double",
+                    ],
+                    correctIndex: 2,
+                    conceptId: "inflation",
+                    difficulty: "easy",
+                },
+                nextStepId: "st-5",
+            },
+            {
+                id: "st-5",
+                type: "story",
+                content: {
+                    en: "Nice work — Chapter 1 complete.",
+                    ro: "Bravo — Capitolul 1 este complet.",
+                },
+            },
+        ],
+    },
+
+    "ch2-test": {
+        id: "ch2-test",
+        title: {
+            en: "Chapter 2 test",
+            ro: "Test capitol 2",
+        },
+        conceptIds: ["interest_rates", "debt", "compound_interest"],
+        steps: [
+            {
+                id: "st-1",
+                type: "story",
+                content: {
+                    en: "Let’s test what you learned in Chapter 2.",
+                    ro: "Hai să testăm ce ai învățat în Capitolul 2.",
+                },
+                nextStepId: "st-2",
+            },
+            {
+                id: "st-2",
+                type: "question",
+                content: {
+                    en: "Question 1",
+                    ro: "Întrebarea 1",
+                },
+                question: {
+                    id: "ch2test-q1",
+                    type: "mcq",
+                    question:
+                        "If interest rates rise, what typically happens to bond prices?",
+                    options: [
+                        "They increase",
+                        "They decrease",
+                        "They stay the same",
+                        "They become volatile",
+                    ],
+                    correctIndex: 1,
+                    conceptId: "interest_rates",
+                    difficulty: "medium",
+                },
+                nextStepId: "st-3",
+            },
+            {
+                id: "st-3",
+                type: "question",
+                content: {
+                    en: "Question 2",
+                    ro: "Întrebarea 2",
+                },
+                question: {
+                    id: "ch2test-q2",
+                    type: "mcq",
+                    question:
+                        "To generally minimize interest paid on credit card debt, you should:",
+                    options: [
+                        "Pay the minimum",
+                        "Pay as much as you can early",
+                        "Skip a payment",
+                        "Wait for rates to fall",
+                    ],
+                    correctIndex: 1,
+                    conceptId: "debt",
+                    difficulty: "medium",
+                },
+                nextStepId: "st-4",
+            },
+            {
+                id: "st-4",
+                type: "question",
+                content: {
+                    en: "Question 3",
+                    ro: "Întrebarea 3",
+                },
+                question: {
+                    id: "ch2test-q3",
+                    type: "mcq",
+                    question:
+                        "Compound interest differs from simple interest because it:",
+                    options: [
+                        "Uses a lower rate",
+                        "Is calculated only annually",
+                        "Earns interest on accumulated interest",
+                        "Applies only to savings accounts",
+                    ],
+                    correctIndex: 2,
+                    conceptId: "compound_interest",
+                    difficulty: "medium",
+                },
+                nextStepId: "st-5",
+            },
+            {
+                id: "st-5",
+                type: "story",
+                content: {
+                    en: "Nice work — Chapter 2 complete.",
+                    ro: "Bravo — Capitolul 2 este complet.",
+                },
+            },
+        ],
+    },
 };
 
 export async function getSimulationById(
@@ -121,7 +320,6 @@ export async function getSimulationById(
                     id: `step-${idx}`,
                     type: s.type,
                     content: s.content,
-                    
                 })),
             };
         }

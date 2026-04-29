@@ -2,6 +2,8 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useMemo, useState } from "react";
 import {
+    Alert,
+    Pressable,
     ScrollView,
     StyleSheet,
     View,
@@ -14,11 +16,16 @@ import { LessonNode } from "@/components/LessonNode";
 import { RoadmapPath } from "@/components/RoadmapPath";
 import { ThemedText } from "@/components/themed-text";
 import { getHeartsState } from "@/services/HeartsService";
-import { CHAPTERS, getRoadmapNodes } from "@/services/LessonService";
+import {
+    CHAPTERS,
+    getRoadmapNodes,
+    resetProgressForUser,
+} from "@/services/LessonService";
 import type {
     HeartsState,
     LessonNode as LessonNodeType,
 } from "@/types/questions";
+import { useUser } from "@clerk/clerk-expo";
 import { useTranslation } from "react-i18next";
 
 export default function LearnScreen() {
@@ -26,24 +33,43 @@ export default function LearnScreen() {
     const router = useRouter();
     const { width: windowWidth } = useWindowDimensions();
     const { t, i18n } = useTranslation();
+    const { user } = useUser();
 
     const [nodes, setNodes] = useState<LessonNodeType[]>([]);
     const [hearts, setHearts] = useState<HeartsState | null>(null);
 
     const load = useCallback(async () => {
         const [ns, hs] = await Promise.all([
-            getRoadmapNodes(),
+            getRoadmapNodes(user?.id ?? null),
             getHeartsState(),
         ]);
         setNodes(ns);
         setHearts(hs);
-    }, []);
+    }, [user?.id]);
 
     useFocusEffect(
         useCallback(() => {
             void load();
         }, [load]),
     );
+
+    const handleResetProgress = useCallback(() => {
+        Alert.alert(
+            "Reset progress?",
+            "This will clear lesson/simulation completion for this account on this device.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Reset",
+                    style: "destructive",
+                    onPress: async () => {
+                        await resetProgressForUser(user?.id ?? null);
+                        await load();
+                    },
+                },
+            ],
+        );
+    }, [load, user?.id]);
 
     const handlePress = useCallback(
         (node: LessonNodeType) => {
@@ -52,7 +78,6 @@ export default function LearnScreen() {
             if (node.type === "lesson") {
                 router.push(`/lesson/${node.id}` as unknown as any);
             } else {
-                
                 router.push(`/simulation/${node.id}` as unknown as any);
             }
         },
@@ -115,7 +140,7 @@ export default function LearnScreen() {
         for (const n of sortedNodes) {
             if (seen.has(n.chapterId)) continue;
             seen.add(n.chapterId);
-            
+
             markers.push({ chapterId: n.chapterId, y: pointFor(n).y - 96 });
         }
         return markers;
@@ -126,6 +151,14 @@ export default function LearnScreen() {
             <StatusBar style="light" />
 
             <View style={styles.topBar}>
+                {__DEV__ && (
+                    <Pressable onPress={handleResetProgress} hitSlop={8}>
+                        <ThemedText style={styles.debugResetText}>
+                            Reset progress
+                        </ThemedText>
+                    </Pressable>
+                )}
+
                 <View style={{ flex: 1 }} />
                 {hearts && (
                     <HeartsIndicator
@@ -145,7 +178,6 @@ export default function LearnScreen() {
                         { width: MAP_WIDTH, height: mapHeight },
                     ]}
                 >
-                    
                     {chapterMarkers.map((m) => (
                         <View
                             key={m.chapterId}
@@ -201,7 +233,13 @@ const styles = StyleSheet.create({
         paddingTop: 10,
         paddingBottom: 6,
         flexDirection: "row",
+        alignItems: "center",
         justifyContent: "flex-end",
+    },
+    debugResetText: {
+        color: "rgba(255,255,255,0.60)",
+        fontSize: 12,
+        fontWeight: "700",
     },
     content: {
         paddingHorizontal: 16,

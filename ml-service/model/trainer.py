@@ -34,7 +34,7 @@ def _fetch_interactions(db) -> List[Interaction]:
 
         # Resolve userId from path: users/{userId}/interactions/{docId}
         try:
-            user_id = doc.reference.parent.parent.id  # type: ignore[union-attr]
+            user_id = doc.reference.parent.parent.id
         except Exception:
             user_id = data.get("userId")
 

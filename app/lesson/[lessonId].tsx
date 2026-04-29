@@ -79,10 +79,10 @@ export default function LessonScreen() {
             if (!lesson) return;
             if (passed) {
                 try {
-                    await completeNode(lesson.id);
+                    await completeNode(lesson.id, user?.id ?? null);
 
                     // Keep widget state in sync with completion.
-                    void syncNextLessonWidget();
+                    void syncNextLessonWidget(user?.id ?? null);
                 } catch (err) {
                     // If persisting completion fails (AsyncStorage, etc.), still allow the user
                     // to exit the lesson. We don't want to trap them on the last question.
@@ -246,7 +246,11 @@ export default function LessonScreen() {
                 }}
             />
 
-            <ScrollView contentContainerStyle={styles.content}>
+            <ScrollView
+                style={styles.scroll}
+                contentContainerStyle={styles.content}
+                showsVerticalScrollIndicator={false}
+            >
                 <ThemedText style={styles.small}>{progressLabel}</ThemedText>
 
                 {isSlide && currentSlide && (
@@ -324,7 +328,12 @@ export default function LessonScreen() {
                 )}
             </ScrollView>
 
-            <View style={styles.footer}>
+            <View
+                style={[
+                    styles.footer,
+                    { paddingBottom: Math.max(16, insets.bottom + 16) },
+                ]}
+            >
                 <Pressable
                     onPress={onContinue}
                     style={({ pressed }) => [
@@ -350,9 +359,13 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#0f1115",
     },
+    scroll: {
+        flex: 1,
+    },
     content: {
-        flexGrow: 1,
-        paddingBottom: 80,
+        paddingHorizontal: 16,
+        paddingTop: 14,
+        paddingBottom: 24,
     },
     small: {
         marginBottom: 8,
@@ -388,22 +401,21 @@ const styles = StyleSheet.create({
         padding: 12,
         marginBottom: 12,
         flexDirection: "row",
-        alignItems: "center",
+        alignItems: "flex-start",
     },
     optionText: {
+        flex: 1,
+        flexShrink: 1,
+        flexWrap: "wrap",
         fontSize: 16,
+        lineHeight: 22,
         color: "#fff",
     },
     footer: {
-        position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 80,
-        justifyContent: "center",
-        alignItems: "center",
         paddingHorizontal: 16,
-        paddingBottom: 32,
+        paddingTop: 8,
+        borderTopWidth: 1,
+        borderTopColor: "rgba(255,255,255,0.06)",
     },
     cta: {
         backgroundColor: "#22c55e",

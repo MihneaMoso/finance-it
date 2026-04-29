@@ -132,7 +132,6 @@ export function MCQCard({ question, contextHint }: MCQCardProps) {
                                 styles.optionText,
                                 getOptionTextStyle(index),
                             ]}
-                            numberOfLines={3}
                         >
                             {option}
                         </ThemedText>
@@ -241,6 +240,8 @@ const styles = StyleSheet.create({
     },
     optionText: {
         flex: 1,
+        flexShrink: 1,
+        flexWrap: "wrap",
         fontSize: 16,
         lineHeight: 22,
     },

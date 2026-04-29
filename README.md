@@ -1,50 +1,32 @@
-# Welcome to your Expo app 👋
+# Welcome to Finance-It
+### Team name: Finance-It
+### Team members:
+ - Mosorescu Mihnea (Student at "Tudor Vianu" National Computer Science High School)
+ - Stefan Panait (Student at "Mihai Eminescu" National High School) 
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+<!-- This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app). -->
+Finance-It is an inclusive, open-source finance education platform that leverages modern social media interfaces and algorithms (similar to platforms like TikTok/Instagram) with its goal being educating young people on financial and monetary topics.
 
-## Get started
+The app's interface is organized as follows:
+ - __The main Home page__: A scrollable UI where you interact with financial questions (either multiple choice or numeric answers);
+ - __The Learn page__: A carefully tailored roadmap of lessons, practices and tests to help users study efficiently, providing useful and verified educational resources;
+ - __The Flashcards page__: Users have access to Anki-style flashcards right in the app, offering structured learning;
+ - __The Account page__: Authentication is made easy so saving your progress and algorithm preferences is a no-brainer;
 
-1. Install dependencies
+**The algorithm**:
+ - Users are being shown questions that the Machine-Learning model decides are most relevant to them, based on a recommender
+ - The small Python recommender predicts “how likely is this user to answer correctly for this concept right now?” and then recommends the lowest predicted probabilities first (i.e., what you’re weakest on).
 
-   ```bash
-   npm install
-   ```
+## Our technology stack:
+ - **For the frontend:**
+   - Expo with React for the mobile and web app
+   - I18next for the internationalization of languages
+  
+ - **For the backend:**
+   - Firebase Firestore for storing data
+   - Clerk for authentication
+   - Python with Skicit-Learn for training the model
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### Links:
+ - Pitch: https://drive.google.com/file/d/1beQRFy7EXuzrnLRcDdW_q5CidtIZXKZz/view?usp=sharing
+ - Demo: ``

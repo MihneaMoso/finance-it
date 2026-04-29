@@ -29,10 +29,12 @@ export async function syncStreakWidget(userId: string): Promise<void> {
     await setStreakCurrent(streak.current);
 }
 
-export async function syncNextLessonWidget(): Promise<void> {
+export async function syncNextLessonWidget(
+    userId?: string | null,
+): Promise<void> {
     if (!isAndroid()) return;
 
-    const nodes = await getRoadmapNodes();
+    const nodes = await getRoadmapNodes(userId ?? null);
     const next =
         nodes.find((n) => n.status === "available" && n.type === "lesson") ??
         null;
@@ -113,7 +115,7 @@ export async function syncAllWidgetsForUser(userId: string): Promise<void> {
 
     await Promise.all([
         syncStreakWidget(userId),
-        syncNextLessonWidget(),
+        syncNextLessonWidget(userId),
         syncFlashcardsWidget(),
     ]);
 }

@@ -1,5 +1,3 @@
-
-
 import { FALLBACK_ENABLED } from "@/services/ContentFallback";
 import { fetchLessonById } from "@/services/FirestoreService";
 import type {
@@ -12,7 +10,17 @@ import type {
 } from "@/types/questions";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const PROGRESS_KEY = "financeit/lessonProgress";
+const LEGACY_PROGRESS_KEY = "financeit/lessonProgress";
+const PROGRESS_KEY_PREFIX = "financeit/lessonProgress:";
+
+function normalizeUserScope(userId?: string | null): string {
+    const trimmed = (userId ?? "").trim();
+    return trimmed ? trimmed : "guest";
+}
+
+function progressKey(userId?: string | null): string {
+    return `${PROGRESS_KEY_PREFIX}${normalizeUserScope(userId)}`;
+}
 
 export const CHAPTERS: Chapter[] = [
     {
@@ -95,7 +103,6 @@ const ROADMAP_NODES: Omit<LessonNode, "status">[] = [
         ui: { islandIndex: 5, x: 0.75, y: 0.76 },
     },
 ];
-
 
 const LESSONS: Record<string, Lesson> = {
     "lesson-1": {
@@ -192,39 +199,87 @@ const LESSONS: Record<string, Lesson> = {
     },
 };
 
-
 function defaultProgress(): LessonProgressState {
     return {
-        
         userId: undefined,
         completedNodeIds: [],
         lastUpdated: Date.now(),
     };
 }
 
-export async function getProgress(): Promise<LessonProgressState> {
-    const raw = await AsyncStorage.getItem(PROGRESS_KEY);
-    return raw ? JSON.parse(raw) : defaultProgress();
+export async function getProgress(
+    userId?: string | null,
+): Promise<LessonProgressState> {
+    const key = progressKey(userId);
+    const raw = await AsyncStorage.getItem(key);
+    if (raw) {
+        const parsed = JSON.parse(raw) as LessonProgressState;
+        return {
+            ...defaultProgress(),
+            ...parsed,
+            userId: normalizeUserScope(userId),
+        };
+    }
+
+    // Legacy migration: older versions stored a single shared progress blob.
+    const legacyRaw = await AsyncStorage.getItem(LEGACY_PROGRESS_KEY);
+    if (legacyRaw) {
+        try {
+            const legacy = JSON.parse(legacyRaw) as LessonProgressState;
+            const migrated: LessonProgressState = {
+                ...defaultProgress(),
+                ...legacy,
+                userId: normalizeUserScope(userId),
+                lastUpdated: Date.now(),
+            };
+            await AsyncStorage.setItem(key, JSON.stringify(migrated));
+            await AsyncStorage.removeItem(LEGACY_PROGRESS_KEY);
+            return migrated;
+        } catch {
+            // Ignore corrupt legacy value.
+        }
+    }
+
+    return {
+        ...defaultProgress(),
+        userId: normalizeUserScope(userId),
+    };
 }
 
 export async function setProgress(
     progress: LessonProgressState,
+    userId?: string | null,
 ): Promise<void> {
-    await AsyncStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+    const key = progressKey(userId ?? progress.userId);
+    await AsyncStorage.setItem(key, JSON.stringify(progress));
 }
 
-export async function completeNode(nodeId: string): Promise<void> {
-    const progress = await getProgress();
+export async function completeNode(
+    nodeId: string,
+    userId?: string | null,
+): Promise<void> {
+    const progress = await getProgress(userId);
     if (!progress.completedNodeIds.includes(nodeId)) {
         progress.completedNodeIds.push(nodeId);
         progress.lastUpdated = Date.now();
-        await setProgress(progress);
+        progress.userId = normalizeUserScope(userId);
+        await setProgress(progress, userId);
     }
 }
 
+export async function resetProgressForUser(
+    userId?: string | null,
+): Promise<void> {
+    await Promise.all([
+        AsyncStorage.removeItem(progressKey(userId)),
+        AsyncStorage.removeItem(LEGACY_PROGRESS_KEY),
+    ]);
+}
 
-export async function getRoadmapNodes(): Promise<LessonNode[]> {
-    const progress = await getProgress();
+export async function getRoadmapNodes(
+    userId?: string | null,
+): Promise<LessonNode[]> {
+    const progress = await getProgress(userId);
 
     const completed = new Set(progress.completedNodeIds);
     const sorted = [...ROADMAP_NODES].sort((a, b) => a.order - b.order);
@@ -255,13 +310,13 @@ export async function getLessonById(id: string): Promise<Lesson | null> {
             // Map FirestoreLesson -> Lesson
             return {
                 id: remote.id,
-                title: { en: remote.id, ro: remote.id }, 
+                title: { en: remote.id, ro: remote.id },
                 slides: remote.slides.map((s, idx) => ({
                     id: `slide-${idx}`,
                     title: s.title,
                     content: s.content,
                 })),
-                questions: [], 
+                questions: [],
             };
         }
     } catch {

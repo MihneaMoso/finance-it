@@ -100,10 +100,10 @@ export default function SimulationScreen() {
         if (isLast) {
             if (simulationId) {
                 try {
-                    await completeNode(String(simulationId));
+                    await completeNode(String(simulationId), user?.id ?? null);
 
                     // Keep widget state in sync with completion.
-                    void syncNextLessonWidget();
+                    void syncNextLessonWidget(user?.id ?? null);
                 } catch (err) {
                     // Never trap the user if persistence fails.
                     console.warn(
@@ -119,7 +119,7 @@ export default function SimulationScreen() {
 
         setStepIndex((i) => Math.min(i + 1, steps.length - 1));
         setStepAnswered(false);
-    }, [router, simulationId, stepIndex, steps.length]);
+    }, [router, simulationId, stepIndex, steps.length, user?.id]);
 
     if (!sim || !step) {
         return (

@@ -1,11 +1,5 @@
-/**
- * SimulationStepView — renders a story or question step.
- *
- * For question steps, it reuses QuestionCard-display patterns but adapts
- * to a contained layout and returns correct/incorrect to the parent engine.
- */
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
@@ -32,6 +26,12 @@ export function SimulationStepView({
 
     const mcq = useMemo(() => (q?.type === "mcq" ? q : null), [q]);
 
+    useEffect(() => {
+        startTimeRef.current = Date.now();
+        setSelectedIndex(null);
+        setSubmitted(false);
+    }, [step.id]);
+
     const handleMCQ = (idx: number) => {
         if (!mcq || submitted) return;
 
@@ -48,6 +48,12 @@ export function SimulationStepView({
     return (
         <View style={styles.container}>
             <ThemedText style={styles.storyText}>{content}</ThemedText>
+
+            {isQuestion && mcq?.question && (
+                <ThemedText style={styles.questionText}>
+                    {mcq.question}
+                </ThemedText>
+            )}
 
             {isQuestion && mcq && (
                 <View style={styles.options}>
@@ -113,6 +119,13 @@ const styles = StyleSheet.create({
         lineHeight: 26,
         fontWeight: "600",
         color: "rgba(255, 255, 255, 0.9)",
+    },
+    questionText: {
+        fontSize: 20,
+        lineHeight: 28,
+        fontWeight: "800",
+        color: "#fff",
+        marginTop: 2,
     },
     options: {
         rowGap: 10,

@@ -5,10 +5,11 @@ import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { t } from "@/i18n/strings";
+import { useTranslation } from "react-i18next";
 
 export default function TabLayout() {
     const colorScheme = useColorScheme();
+    const { t } = useTranslation();
 
     return (
         <Tabs
@@ -25,7 +26,7 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="index"
                 options={{
-                    title: t((s) => s.tabs.home),
+                    title: t("tabs.home"),
                     tabBarIcon: ({ color }) => (
                         <IconSymbol size={28} name="house.fill" color={color} />
                     ),
@@ -35,7 +36,7 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="learn"
                 options={{
-                    title: t((s) => s.tabs.learn),
+                    title: t("tabs.learn"),
                     tabBarIcon: ({ color }) => (
                         <IconSymbol size={28} name="sparkles" color={color} />
                     ),
@@ -45,7 +46,7 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="flashcards"
                 options={{
-                    title: t((s) => s.tabs.flashcards),
+                    title: t("tabs.flashcards"),
                     tabBarIcon: ({ color }) => (
                         <IconSymbol
                             size={28}
@@ -58,7 +59,7 @@ export default function TabLayout() {
             <Tabs.Screen
                 name="account"
                 options={{
-                    title: t((s) => s.tabs.account),
+                    title: t("tabs.account"),
                     tabBarIcon: ({ color }) => (
                         <IconSymbol
                             size={28}

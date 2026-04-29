@@ -21,7 +21,7 @@ def _default_streak(today: str) -> Dict[str, Any]:
 def _is_yyyy_mm_dd(s: Any) -> bool:
     if not isinstance(s, str):
         return False
-    # YYYY-MM-DD
+    
     if len(s) != 10:
         return False
     if s[4] != "-" or s[7] != "-":
@@ -34,7 +34,7 @@ def _json_error(message: str, status: int = 400):
 
 
 def _compute_skill_level(total_answered: int, correct_answers: int, avg_response_time_ms: float) -> str:
-    """Keep this aligned with services/UserService.ts computeSkillLevel()."""
+    
 
     accuracy = (correct_answers / total_answered) if total_answered > 0 else 0.0
 
@@ -80,7 +80,7 @@ def recommend():
     return jsonify(
         {
             "rankedConcepts": rec.ranked_concepts,
-            # extra (helpful for hybrid scoring): per-concept p(correct)
+            
             "pCorrectByConcept": rec.p_correct_by_concept,
         }
     )
@@ -129,7 +129,7 @@ def record_interaction():
             user_doc.get("conceptStats") if isinstance(user_doc.get("conceptStats"), dict) else {}
         )
 
-        # global stats
+        
         prev_total = int(stats.get("totalAnswered") or 0)
         prev_correct = int(stats.get("correctAnswers") or 0)
         prev_avg = float(stats.get("avgResponseTime") or 0)

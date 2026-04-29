@@ -1,14 +1,3 @@
-/**
- * FirestoreService — typed Firestore access layer.
- *
- * Responsibilities:
- * - Fetch questions / flashcards / lessons / simulations
- * - Fetch / upsert users
- * - In-memory caching to reduce reads
- *
- * Offline:
- * TODO: implement offline sync queue for writes.
- */
 
 import {
     collection,

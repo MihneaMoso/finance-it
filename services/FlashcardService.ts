@@ -243,14 +243,9 @@ export function getFlashcardPool(): Flashcard[] {
     return FLASHCARD_POOL;
 }
 
-// ─── Selection Logic ─────────────────────────────────────────────────────────
-
 let lastFlashcardId: string | null = null;
 
-/**
- * Returns the next flashcard, biased toward struggled concepts.
- * Uses the same profile data as the question feed.
- */
+
 export function getNextFlashcard(): Flashcard {
     const profile = getProfile();
     const pool = FLASHCARD_POOL;
@@ -271,26 +266,26 @@ export function getNextFlashcard(): Flashcard {
                     : 0;
             score += errorRate * 3.0;
 
-            // Recency boost
+            
             const minutesAgo = (Date.now() - stats.lastSeenTimestamp) / 60000;
             score += Math.min(minutesAgo / 10, 1) * 1.5;
         }
 
-        // Randomness
+        
         score += Math.random() * 0.5;
 
         return { card, score };
     });
 
-    // Sort by score descending
+    
     scored.sort((a, b) => b.score - a.score);
 
-    // Pick from top 5
+    
     const topN = scored.slice(0, Math.min(5, scored.length));
 
     let selected = topN[0].card;
 
-    // Avoid immediate repeat
+    
     if (selected.id === lastFlashcardId && topN.length > 1) {
         selected = topN[1].card;
     }
@@ -299,13 +294,11 @@ export function getNextFlashcard(): Flashcard {
     return selected;
 }
 
-/**
- * Converts a flashcard response into an AnswerEvent for the learning profile.
- *
+/*
  * Mapping:
- * - "knew_it"     → correct, fast response
- * - "unsure"      → correct but slow (signals weak knowledge)
- * - "didnt_know"  → incorrect
+ * - "knew_it"     -> correct, fast response
+ * - "unsure"      -> correct but slow (signals weak knowledge)
+ * - "didnt_know"  -> incorrect
  */
 export function flashcardResponseToAnswerEvent(
     flashcard: Flashcard,
@@ -313,7 +306,7 @@ export function flashcardResponseToAnswerEvent(
     timeSpentMs: number,
 ): AnswerEvent {
     const correct = response === "knew_it";
-    // "unsure" is treated as correct but with inflated response time
+    
     const adjustedTime =
         response === "unsure" ? timeSpentMs * 1.5 : timeSpentMs;
 
@@ -327,7 +320,7 @@ export function flashcardResponseToAnswerEvent(
     };
 }
 
-/** Returns the total number of available flashcards */
+
 export function getFlashcardCount(): number {
     return FLASHCARD_POOL.length;
 }

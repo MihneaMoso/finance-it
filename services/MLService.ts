@@ -8,7 +8,7 @@ export type RecommendConceptsResponse = {
 export type Streak = {
     current: number;
     longest: number;
-    lastActiveDate: string; // YYYY-MM-DD (local)
+    lastActiveDate: string; // YYYY-MM-DD
 };
 
 function getBaseUrl(): string | null {
@@ -102,8 +102,7 @@ export async function recordInteraction(params: {
 }): Promise<void> {
     const timestamp = params.event.timestamp ?? Date.now();
 
-    // The ML service schema expects `questionId` to be present.
-    // Ensure call sites always provide it.
+    
     const questionId = params.event.questionId;
     if (!questionId) {
         throw new Error("recordInteraction requires event.questionId");

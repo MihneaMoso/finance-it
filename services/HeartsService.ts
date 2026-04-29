@@ -1,16 +1,4 @@
 /**
- * HeartsService — daily hearts mechanic.
- *
- * Rules:
- * - 10 hearts per 24h window
- * - Wrong answers consume 1 heart
- * - At 0 hearts: lessons/simulations are blocked
- *
- * Persistence:
- * - Stored in AsyncStorage for now.
- * - TODO: Replace with backend storage per-user.
- *
- * Auth readiness:
  * - HeartsState includes `userId` (TODO: Clerk)
  */
 
@@ -25,7 +13,7 @@ const RESET_MS = 24 * 60 * 60 * 1000;
 
 function defaultState(): HeartsState {
     return {
-        // TODO: Replace with Clerk user ID
+        
         userId: undefined,
         current: MAX_HEARTS,
         max: MAX_HEARTS,
@@ -61,7 +49,6 @@ export async function setHeartsState(state: HeartsState): Promise<void> {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-/** Use when user makes a mistake in lessons/simulations */
 export async function consumeHeart(): Promise<HeartsState> {
     const state = maybeReset(await getHeartsState());
 

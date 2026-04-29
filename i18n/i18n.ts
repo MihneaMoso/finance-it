@@ -73,6 +73,24 @@ export const resources = {
                 achievement1: "New streak record!",
                 achievement2: "You're improving fast — keep going!",
             },
+            account: {
+                signInToTrackProgress: "Sign in to track your progress",
+                signIn: "Sign In",
+                createAccount: "Create Account",
+
+                profile: "Profile",
+                edit: "Edit",
+                name: "Name",
+                email: "Email",
+                experienceLevel: "Experience level",
+                save: "Save",
+                cancel: "Cancel",
+
+                stats: "Stats",
+                questionsAnswered: "Questions answered",
+                accuracyRate: "Accuracy rate",
+                dayStreak: "Day streak",
+            },
         },
     },
     ro: {
@@ -134,6 +152,25 @@ export const resources = {
                 warning2: "Ține-o vie azi 🔥",
                 achievement1: "Record nou de serie!",
                 achievement2: "Progresezi rapid — continuă!",
+            },
+            account: {
+                signInToTrackProgress:
+                    "Autentifică-te pentru a-ți urmări progresul",
+                signIn: "Autentificare",
+                createAccount: "Creează cont",
+
+                profile: "Profil",
+                edit: "Editează",
+                name: "Nume",
+                email: "Email",
+                experienceLevel: "Nivel de experiență",
+                save: "Salvează",
+                cancel: "Anulează",
+
+                stats: "Statistici",
+                questionsAnswered: "Întrebări rezolvate",
+                accuracyRate: "Rată de acuratețe",
+                dayStreak: "Seria (zile)",
             },
         },
     },

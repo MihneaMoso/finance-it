@@ -6,8 +6,8 @@ import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
-import { getLanguage, t } from "@/i18n/strings";
 import type { LessonNode as LessonNodeType } from "@/types/questions";
+import { useTranslation } from "react-i18next";
 
 export function LessonNode({
     node,
@@ -16,17 +16,18 @@ export function LessonNode({
     node: LessonNodeType;
     onPress: (node: LessonNodeType) => void;
 }) {
-    const lang = getLanguage();
-    const title = node.title[lang] ?? node.title.en;
+    const { t, i18n } = useTranslation();
+    const lang = i18n.language?.toLowerCase().startsWith("ro") ? "ro" : "en";
+    const title = (node.title as any)[lang] ?? node.title.en;
 
     const disabled = node.status === "locked";
 
     const badgeText =
         node.type === "lesson"
-            ? t((s) => s.learn.lesson)
+            ? t("learn.lesson")
             : node.type === "chapter_test"
-              ? t((s) => s.learn.chapterTest)
-              : t((s) => s.learn.practice);
+              ? t("learn.chapterTest")
+              : t("learn.practice");
 
     return (
         <TouchableOpacity
@@ -74,12 +75,12 @@ export function LessonNode({
 
             {node.status === "locked" && (
                 <ThemedText style={styles.lockedText}>
-                    {t((s) => s.learn.locked)}
+                    {t("learn.locked")}
                 </ThemedText>
             )}
             {node.status === "completed" && (
                 <ThemedText style={styles.completedText}>
-                    {t((s) => s.learn.completed)}
+                    {t("learn.completed")}
                 </ThemedText>
             )}
         </TouchableOpacity>

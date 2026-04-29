@@ -13,18 +13,19 @@ import { HeartsIndicator } from "@/components/HeartsIndicator";
 import { LessonNode } from "@/components/LessonNode";
 import { RoadmapPath } from "@/components/RoadmapPath";
 import { ThemedText } from "@/components/themed-text";
-import { getLanguage, t } from "@/i18n/strings";
 import { getHeartsState } from "@/services/HeartsService";
 import { CHAPTERS, getRoadmapNodes } from "@/services/LessonService";
 import type {
     HeartsState,
     LessonNode as LessonNodeType,
 } from "@/types/questions";
+import { useTranslation } from "react-i18next";
 
 export default function LearnScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { width: windowWidth } = useWindowDimensions();
+    const { t, i18n } = useTranslation();
 
     const [nodes, setNodes] = useState<LessonNodeType[]>([]);
     const [hearts, setHearts] = useState<HeartsState | null>(null);
@@ -51,14 +52,14 @@ export default function LearnScreen() {
             if (node.type === "lesson") {
                 router.push(`/lesson/${node.id}` as unknown as any);
             } else {
-                // simulations + chapter tests both run in the simulation engine for now
+                
                 router.push(`/simulation/${node.id}` as unknown as any);
             }
         },
         [router],
     );
 
-    const lang = getLanguage();
+    const lang = i18n.language?.toLowerCase().startsWith("ro") ? "ro" : "en";
 
     const sortedNodes = useMemo(() => {
         return [...nodes].sort((a, b) => a.order - b.order);
@@ -114,8 +115,7 @@ export default function LearnScreen() {
         for (const n of sortedNodes) {
             if (seen.has(n.chapterId)) continue;
             seen.add(n.chapterId);
-            // Position chapter pill above the first node in the chapter.
-            // Nodes are translated up by ~52px, so we offset more to avoid overlap.
+            
             markers.push({ chapterId: n.chapterId, y: pointFor(n).y - 96 });
         }
         return markers;
@@ -145,7 +145,7 @@ export default function LearnScreen() {
                         { width: MAP_WIDTH, height: mapHeight },
                     ]}
                 >
-                    {/* Chapter headers */}
+                    
                     {chapterMarkers.map((m) => (
                         <View
                             key={m.chapterId}
@@ -157,7 +157,7 @@ export default function LearnScreen() {
                         >
                             <View style={styles.chapterPill}>
                                 <ThemedText style={styles.chapterPillText}>
-                                    {t((s) => s.learn.chapter)}{" "}
+                                    {t("learn.chapter")}{" "}
                                     {chapterTitleById.get(m.chapterId) ?? ""}
                                 </ThemedText>
                             </View>

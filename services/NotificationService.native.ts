@@ -70,10 +70,10 @@ TaskManager.defineTask(DAILY_TASK, async () => {
             return BackgroundFetch.BackgroundFetchResult.NoData;
         }
 
-        // Ensure daily reminder exists (rotates copy on reschedule).
+        
         await ensureDailyReminderScheduled();
 
-        // Streak warning: if user hasn't been active today, schedule a warning for later.
+        
         const streak = await getStreak(userId);
         const today = formatLocalYYYYMMDD(new Date());
         if (streak.lastActiveDate !== today) {
@@ -89,7 +89,7 @@ TaskManager.defineTask(DAILY_TASK, async () => {
 export async function requestNotificationPermissions(): Promise<boolean> {
     const asked = await AsyncStorage.getItem(STORAGE.askedPermission);
 
-    // This file should only be used on native platforms.
+    
     if (Platform.OS === "web") return false;
 
     if (!asked) {
@@ -140,7 +140,7 @@ export async function ensureDailyReminderScheduled(forceReschedule?: boolean) {
         try {
             await Notifications.cancelScheduledNotificationAsync(existingId);
         } catch {
-            // ignore
+            
         }
     }
 
@@ -179,7 +179,7 @@ export async function scheduleStreakWarningAt(params: {
         try {
             await Notifications.cancelScheduledNotificationAsync(existingId);
         } catch {
-            // ignore
+            
         }
     }
 
@@ -227,7 +227,7 @@ export async function registerNotificationBackgroundTasks() {
     if (isRegistered) return;
 
     await BackgroundFetch.registerTaskAsync(DAILY_TASK, {
-        minimumInterval: 60 * 60 * 6, // best-effort; OS clamps
+        minimumInterval: 60 * 60 * 6,
         stopOnTerminate: false,
         startOnBoot: true,
     });

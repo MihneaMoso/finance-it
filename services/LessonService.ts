@@ -1,10 +1,4 @@
-/**
- * LessonService — provides roadmap nodes and lesson content.
- *
- * Backend readiness:
- * TODO: Replace hardcoded data with API calls.
- * All models are JSON-serializable.
- */
+
 
 import { FALLBACK_ENABLED } from "@/services/ContentFallback";
 import { fetchLessonById } from "@/services/FirestoreService";
@@ -20,8 +14,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const PROGRESS_KEY = "financeit/lessonProgress";
 
-// ─── Chapters ───────────────────────────────────────────────────────────────
-
 export const CHAPTERS: Chapter[] = [
     {
         id: "ch-1",
@@ -34,8 +26,6 @@ export const CHAPTERS: Chapter[] = [
         order: 2,
     },
 ];
-
-// ─── Roadmap Nodes ──────────────────────────────────────────────────────────
 
 const ROADMAP_NODES: Omit<LessonNode, "status">[] = [
     {
@@ -106,7 +96,6 @@ const ROADMAP_NODES: Omit<LessonNode, "status">[] = [
     },
 ];
 
-// ─── Lesson Content ─────────────────────────────────────────────────────────
 
 const LESSONS: Record<string, Lesson> = {
     "lesson-1": {
@@ -203,11 +192,10 @@ const LESSONS: Record<string, Lesson> = {
     },
 };
 
-// ─── Progress Persistence ───────────────────────────────────────────────────
 
 function defaultProgress(): LessonProgressState {
     return {
-        // TODO: Replace with Clerk user ID
+        
         userId: undefined,
         completedNodeIds: [],
         lastUpdated: Date.now(),
@@ -234,7 +222,6 @@ export async function completeNode(nodeId: string): Promise<void> {
     }
 }
 
-// ─── Roadmap API ────────────────────────────────────────────────────────────
 
 export async function getRoadmapNodes(): Promise<LessonNode[]> {
     const progress = await getProgress();
@@ -268,17 +255,17 @@ export async function getLessonById(id: string): Promise<Lesson | null> {
             // Map FirestoreLesson -> Lesson
             return {
                 id: remote.id,
-                title: { en: remote.id, ro: remote.id }, // TODO: add lesson titles to Firestore schema
+                title: { en: remote.id, ro: remote.id }, 
                 slides: remote.slides.map((s, idx) => ({
                     id: `slide-${idx}`,
                     title: s.title,
                     content: s.content,
                 })),
-                questions: [], // TODO: resolve questionIds -> Question[] via Firestore
+                questions: [], 
             };
         }
     } catch {
-        // ignore and fallback
+        // fallback
     }
 
     return FALLBACK_ENABLED ? (LESSONS[id] ?? null) : null;

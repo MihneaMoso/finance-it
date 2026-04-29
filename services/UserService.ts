@@ -1,6 +1,4 @@
-/**
- * UserService — sync Clerk user <-> Firestore user doc and computed skill level.
- */
+
 
 import type { FirestoreUser, SkillLevel } from "@/services/FirestoreService";
 import { fetchUserByClerkId, upsertUser } from "@/services/FirestoreService";
@@ -16,7 +14,7 @@ export function computeSkillLevel(stats: {
     if (accuracy < 0.5) return "beginner";
     if (accuracy <= 0.8) return "intermediate";
 
-    // “low response time” heuristic: < 7s avg
+    
     if (stats.avgResponseTime > 0 && stats.avgResponseTime < 7000) {
         return "advanced";
     }
@@ -68,7 +66,7 @@ export async function updateUserStats(params: {
         user.stats.correctAnswers + params.deltaCorrectAnswers,
     );
 
-    // running avg response time
+    
     const prevAvg = user.stats.avgResponseTime;
     const prevN = user.stats.totalAnswered;
     const nextAvg =

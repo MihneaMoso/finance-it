@@ -29,7 +29,7 @@ export function formatLocalYYYYMMDD(d: Date): string {
 }
 
 function parseLocalYYYYMMDD(s: string): Date | null {
-    // Treat the date string as a local date. Use noon to avoid DST midnight issues.
+    
     const m = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(s);
     if (!m) return null;
     const y = Number(m[1]);
@@ -60,7 +60,7 @@ function storageKey(userId: string): string {
 export async function getStreak(userId: string): Promise<Streak> {
     const today = formatLocalYYYYMMDD(new Date());
 
-    // 1) local cache first (fast + works offline)
+    
     const raw = await AsyncStorage.getItem(storageKey(userId));
     if (raw) {
         try {
@@ -73,11 +73,11 @@ export async function getStreak(userId: string): Promise<Streak> {
                 return parsed;
             }
         } catch {
-            // ignore
+            
         }
     }
 
-    // 2) try server (Firestore via Admin SDK), then cache locally
+    
     try {
         const remote = await fetchStreak({ userId });
         if (remote) {
@@ -88,7 +88,7 @@ export async function getStreak(userId: string): Promise<Streak> {
             return remote;
         }
     } catch {
-        // ignore
+        
     }
 
     return defaultStreak(today);
@@ -102,7 +102,7 @@ export function computeNextStreak(params: { prev: Streak; today: string }): {
 } {
     const { prev, today } = params;
 
-    // Same day: no change
+    
     if (prev.lastActiveDate === today) {
         return {
             next: prev,
@@ -158,11 +158,11 @@ export async function recordStreakActivity(params: {
     await AsyncStorage.setItem(storageKey(params.userId), JSON.stringify(next));
     emit(next);
 
-    // Best-effort remote persistence (Firestore via ML service)
+    
     try {
         await upsertStreak({ userId: params.userId, streak: next });
     } catch {
-        // ignore
+        
     }
 
     return { next, increased, newRecord };

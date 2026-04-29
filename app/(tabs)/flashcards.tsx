@@ -1,12 +1,3 @@
-/**
- * Flashcards Screen — Anki-style flashcard review.
- *
- * Features:
- * - One card per screen with tap-to-flip
- * - Self-assessment buttons (Knew it / Unsure / Didn't know)
- * - Performance feeds into the unified learning profile
- * - Cards are biased toward struggled concepts
- */
 
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useState } from "react";

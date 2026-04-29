@@ -1,11 +1,3 @@
-/**
- * Firebase init (Firestore)
- *
- * IMPORTANT:
- * - Uses EXPO_PUBLIC_* env vars (safe for client config).
- * - Firestore security must be enforced via Firestore Security Rules.
- *   TODO: add recommended rules to README / docs.
- */
 
 import { getApp, getApps, initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";

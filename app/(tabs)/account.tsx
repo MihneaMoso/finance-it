@@ -3,7 +3,13 @@ import { SignedIn, SignedOut, useUser } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -18,6 +24,14 @@ const EXPERIENCE_LEVELS: UserProfile["experienceLevel"][] = [
     "advanced",
 ];
 
+type ExperienceLevel = UserProfile["experienceLevel"];
+
+function isExperienceLevel(value: unknown): value is ExperienceLevel {
+    return (
+        value === "beginner" || value === "intermediate" || value === "advanced"
+    );
+}
+
 export default function AccountScreen() {
     const insets = useSafeAreaInsets();
     const { user } = useUser();
@@ -29,28 +43,82 @@ export default function AccountScreen() {
     > | null>(null);
 
     const [experienceLevel, setExperienceLevel] =
-        useState<UserProfile["experienceLevel"]>("beginner");
+        useState<ExperienceLevel>("beginner");
     const [isEditing, setIsEditing] = useState(false);
-    const [editLevel, setEditLevel] =
-        useState<UserProfile["experienceLevel"]>("beginner");
+    const [editLevel, setEditLevel] = useState<ExperienceLevel>("beginner");
+    const [name, setName] = useState<string>("");
+    const [editName, setEditName] = useState<string>("");
+    const [isSaving, setIsSaving] = useState(false);
 
-    const handleSave = () => {
-        setExperienceLevel(editLevel);
-        setIsEditing(false);
+    const handleSave = async () => {
+        if (!user) return;
+        if (isSaving) return;
+
+        const nextDisplayName = editName.trim();
+
+        setIsSaving(true);
+        try {
+            const nextUnsafeMetadata = {
+                ...(user.unsafeMetadata as Record<string, unknown>),
+                experienceLevel: editLevel,
+                ...(nextDisplayName ? { displayName: nextDisplayName } : null),
+            };
+
+            await user.update({
+                unsafeMetadata: nextUnsafeMetadata,
+            });
+
+            await user.reload();
+
+            if (nextDisplayName) {
+                setName(nextDisplayName);
+            }
+            setExperienceLevel(editLevel);
+            setIsEditing(false);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleCancel = () => {
         setEditLevel(experienceLevel);
+        setEditName(name);
         setIsEditing(false);
     };
 
-    const displayName =
+    const unsafe = (user?.unsafeMetadata ?? {}) as Record<string, unknown>;
+    const persistedNameRaw = unsafe.displayName;
+    const persistedExperienceLevelRaw = unsafe.experienceLevel;
+
+    const persistedName =
+        typeof persistedNameRaw === "string" ? persistedNameRaw.trim() : "";
+
+    const fallbackName =
         user?.fullName ??
         user?.firstName ??
         user?.emailAddresses[0]?.emailAddress ??
         "User";
+
+    const displayName = persistedName || name || fallbackName;
     const displayEmail = user?.emailAddresses[0]?.emailAddress ?? "";
     const avatarInitial = displayName.charAt(0).toUpperCase();
+
+    React.useEffect(() => {
+        if (!user?.id) return;
+
+        const initialName = persistedName || fallbackName;
+        if (initialName) {
+            setName(initialName);
+            setEditName(initialName);
+        }
+
+        const initialLevel = isExperienceLevel(persistedExperienceLevelRaw)
+            ? persistedExperienceLevelRaw
+            : "beginner";
+        setExperienceLevel(initialLevel);
+        setEditLevel(initialLevel);
+        
+    }, [user?.id]);
 
     React.useEffect(() => {
         let cancelled = false;
@@ -94,7 +162,7 @@ export default function AccountScreen() {
                             Finance-IT
                         </ThemedText>
                         <ThemedText style={styles.headerSubtitle}>
-                            {t("Sign in to track your progress")}
+                            {t("account.signInToTrackProgress")}
                         </ThemedText>
                     </View>
 
@@ -104,7 +172,7 @@ export default function AccountScreen() {
                         onPress={() => router.push("/(auth)/sign-in")}
                     >
                         <ThemedText style={styles.authButtonText}>
-                            {t("Sign In")}
+                            {t("account.signIn")}
                         </ThemedText>
                     </TouchableOpacity>
 
@@ -114,7 +182,7 @@ export default function AccountScreen() {
                         onPress={() => router.push("/(auth)/sign-up")}
                     >
                         <ThemedText style={styles.signUpButtonText}>
-                            {t("Create Account")}
+                            {t("account.createAccount")}
                         </ThemedText>
                     </TouchableOpacity>
                 </SignedOut>
@@ -137,17 +205,18 @@ export default function AccountScreen() {
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <ThemedText style={styles.sectionTitle}>
-                                {t("profile")}
+                                {t("account.profile")}
                             </ThemedText>
                             {!isEditing && (
                                 <TouchableOpacity
                                     onPress={() => {
+                                        setEditName(displayName);
                                         setEditLevel(experienceLevel);
                                         setIsEditing(true);
                                     }}
                                 >
                                     <ThemedText style={styles.editLink}>
-                                        {t("edit")}
+                                        {t("account.edit")}
                                     </ThemedText>
                                 </TouchableOpacity>
                             )}
@@ -155,16 +224,32 @@ export default function AccountScreen() {
 
                         <View style={styles.field}>
                             <ThemedText style={styles.fieldLabel}>
-                                {t("name")}
+                                {t("account.name")}
                             </ThemedText>
-                            <ThemedText style={styles.fieldValue}>
-                                {displayName}
-                            </ThemedText>
+                            {isEditing ? (
+                                <TextInput
+                                    value={editName}
+                                    onChangeText={setEditName}
+                                    style={styles.fieldInput}
+                                    editable={!isSaving}
+                                    placeholder={fallbackName}
+                                    placeholderTextColor={
+                                        "rgba(255, 255, 255, 0.35)"
+                                    }
+                                    autoCapitalize="words"
+                                    autoCorrect={false}
+                                    returnKeyType="done"
+                                />
+                            ) : (
+                                <ThemedText style={styles.fieldValue}>
+                                    {displayName}
+                                </ThemedText>
+                            )}
                         </View>
 
                         <View style={styles.field}>
                             <ThemedText style={styles.fieldLabel}>
-                                {t("email")}
+                                {t("account.email")}
                             </ThemedText>
                             <ThemedText style={styles.fieldValue}>
                                 {displayEmail}
@@ -173,7 +258,7 @@ export default function AccountScreen() {
 
                         <View style={styles.field}>
                             <ThemedText style={styles.fieldLabel}>
-                                {t("experienceLevel")}
+                                {t("account.experienceLevel")}
                             </ThemedText>
                             {isEditing ? (
                                 <View style={styles.levelSelector}>
@@ -214,18 +299,20 @@ export default function AccountScreen() {
                                     style={styles.saveButton}
                                     onPress={handleSave}
                                     activeOpacity={0.7}
+                                    disabled={isSaving}
                                 >
                                     <ThemedText style={styles.saveButtonText}>
-                                        {t("save")}
+                                        {t("account.save")}
                                     </ThemedText>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={styles.cancelButton}
                                     onPress={handleCancel}
                                     activeOpacity={0.7}
+                                    disabled={isSaving}
                                 >
                                     <ThemedText style={styles.cancelButtonText}>
-                                        {t("cancel")}
+                                        {t("account.cancel")}
                                     </ThemedText>
                                 </TouchableOpacity>
                             </View>
@@ -234,7 +321,7 @@ export default function AccountScreen() {
 
                     <View style={styles.section}>
                         <ThemedText style={styles.sectionTitle}>
-                            {t("stats")}
+                            {t("account.stats")}
                         </ThemedText>
                         <View style={styles.statsRow}>
                             <View style={styles.statCard}>
@@ -242,7 +329,7 @@ export default function AccountScreen() {
                                     0
                                 </ThemedText>
                                 <ThemedText style={styles.statLabel}>
-                                    {t("questionsAnswered")}
+                                    {t("account.questionsAnswered")}
                                 </ThemedText>
                             </View>
                             <View style={styles.statCard}>
@@ -250,7 +337,7 @@ export default function AccountScreen() {
                                     0%
                                 </ThemedText>
                                 <ThemedText style={styles.statLabel}>
-                                    {t("accuracyRate")}
+                                    {t("account.accuracyRate")}
                                 </ThemedText>
                             </View>
                             <View style={styles.statCard}>
@@ -258,7 +345,7 @@ export default function AccountScreen() {
                                     {streak ? streak.current : 0}
                                 </ThemedText>
                                 <ThemedText style={styles.statLabel}>
-                                    {t("dayStreak")}
+                                    {t("account.dayStreak")}
                                 </ThemedText>
                             </View>
                         </View>
@@ -313,6 +400,9 @@ const styles = StyleSheet.create({
     headerSubtitle: {
         fontSize: 15,
         color: "rgba(255, 255, 255, 0.5)",
+        textAlign: "center",
+        alignSelf: "stretch",
+        paddingHorizontal: 16,
     },
 
     authButton: {

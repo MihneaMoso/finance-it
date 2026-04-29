@@ -1,10 +1,3 @@
-/**
- * SimulationService — provides decision simulations (practice scenarios).
- *
- * Backend readiness:
- * TODO: Replace hardcoded data with API calls.
- * All models are JSON-serializable.
- */
 
 import { FALLBACK_ENABLED } from "@/services/ContentFallback";
 import { fetchSimulationById } from "@/services/FirestoreService";
@@ -122,18 +115,18 @@ export async function getSimulationById(
         if (remote) {
             return {
                 id: remote.id,
-                title: { en: remote.id, ro: remote.id }, // TODO in schema
+                title: { en: remote.id, ro: remote.id },
                 conceptIds: remote.conceptIds,
                 steps: remote.steps.map((s, idx) => ({
                     id: `step-${idx}`,
                     type: s.type,
                     content: s.content,
-                    // TODO: resolve questionId -> Question
+                    
                 })),
             };
         }
     } catch {
-        // ignore and fallback
+        // fallback
     }
 
     return FALLBACK_ENABLED ? (SIMULATIONS[id] ?? null) : null;

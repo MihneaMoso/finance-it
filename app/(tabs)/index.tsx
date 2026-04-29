@@ -19,13 +19,15 @@
 
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { FlatList, StyleSheet, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { QuestionCard } from "@/components/QuestionCard";
 import { StreakBadge } from "@/components/StreakBadge";
 import {
-    getQuestionBatch,
+    getQuestionBatchLocalized,
+    localizeResolvedQuestion,
     setActiveUserIdForRecommendations,
 } from "@/services/QuestionService";
 import { getStreak, subscribeToStreak } from "@/services/StreakService";
@@ -37,6 +39,7 @@ const BATCH_SIZE = 10;
 
 export default function HomeScreen() {
     const { user } = useUser();
+    const { i18n } = useTranslation();
     const { height: windowHeight } = useWindowDimensions();
     const insets = useSafeAreaInsets();
 
@@ -45,7 +48,7 @@ export default function HomeScreen() {
     const itemHeight = windowHeight - insets.bottom - TAB_BAR_HEIGHT;
 
     const [questions, setQuestions] = useState<ResolvedQuestion[]>(() =>
-        getQuestionBatch(BATCH_SIZE),
+        getQuestionBatchLocalized(BATCH_SIZE, i18n.language),
     );
     const [streak, setStreak] = useState<Awaited<
         ReturnType<typeof getStreak>
@@ -55,6 +58,12 @@ export default function HomeScreen() {
     React.useEffect(() => {
         setActiveUserIdForRecommendations(user?.id ?? null);
     }, [user?.id]);
+
+    React.useEffect(() => {
+        setQuestions((prev) =>
+            prev.map((q) => localizeResolvedQuestion(q, i18n.language)),
+        );
+    }, [i18n.language]);
 
     React.useEffect(() => {
         let cancelled = false;
@@ -86,10 +95,10 @@ export default function HomeScreen() {
         if (isLoadingMore.current) return;
         isLoadingMore.current = true;
 
-        const newBatch = getQuestionBatch(BATCH_SIZE);
+        const newBatch = getQuestionBatchLocalized(BATCH_SIZE, i18n.language);
         setQuestions((prev) => [...prev, ...newBatch]);
         isLoadingMore.current = false;
-    }, []);
+    }, [i18n.language]);
 
     /** Render a single question card at full viewport height */
     const renderItem = useCallback(

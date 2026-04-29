@@ -1,13 +1,3 @@
-/**
- * FlashcardCard — Anki-style flashcard with tap-to-flip and self-assessment.
- *
- * Features:
- * - Front/back card with tap to flip
- * - Smooth flip animation
- * - Three self-assessment buttons after revealing the answer
- * - Reports responses to the unified learning profile
- */
-
 import React, { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -70,16 +60,16 @@ export function FlashcardCard({ flashcard, onNext }: FlashcardCardProps) {
 
         void recordAnswerAndSync(event, user?.id);
 
-        // Flag for revisit if user didn't know
+        
         if (response === "didnt_know") {
             flagConceptForRevisit(flashcard.conceptId);
         }
 
-        // Move to next card after a brief delay
+        
         setTimeout(onNext, 400);
     };
 
-    // Animation interpolations
+    
     const frontOpacity = flipAnim.interpolate({
         inputRange: [0, 0.5, 1],
         outputRange: [1, 0, 0],

@@ -151,10 +151,10 @@ function scheduleWebAtNextOccurrence(params: {
                 .Notification as typeof Notification;
             new NotificationCtor(title(), { body: params.body });
         } catch {
-            // ignore
+            
         }
 
-        // Reschedule daily
+        
         scheduleWebAtNextOccurrence(params);
     }, ms);
 
@@ -162,7 +162,7 @@ function scheduleWebAtNextOccurrence(params: {
 }
 
 export async function requestNotificationPermissions(): Promise<boolean> {
-    // SSR-safe: never try to prompt on the server.
+    
     if (!isBrowser()) return false;
 
     const asked = storageGet(STORAGE.askedPermission);
@@ -209,8 +209,7 @@ export async function ensureDailyReminderScheduled(forceReschedule?: boolean) {
     const permitted = await requestNotificationPermissions();
     if (!permitted) return;
 
-    // For web we just schedule a timer to fire while tab is open.
-    // Rescheduling rotates the copy.
+    
     const time = parseHHMM(storageGet(STORAGE.dailyTime));
 
     scheduleWebAtNextOccurrence({
@@ -255,11 +254,11 @@ export async function triggerAchievementNotification() {
             .Notification as typeof Notification;
         new NotificationCtor(title(), { body: achievementBody() });
     } catch {
-        // ignore
+        
     }
 }
 
 export async function registerNotificationBackgroundTasks() {
-    // Web: no background tasks.
+    // Web -> no background tasks.
     return;
 }

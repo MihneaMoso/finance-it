@@ -1,22 +1,3 @@
-/**
- * QuestionService — local mock backend for the Finance-IT app.
- *
- * Responsibilities:
- * - Serve questions to the home feed
- * - Bias question selection based on the user's learning profile (mistake-driven)
- * - Generate numeric questions with randomized parameters
- * - Prevent immediate repeats
- *
- * Mistake-Driven Algorithm:
- * - Concepts with high error rates are weighted higher
- * - Concepts not seen recently get a recency boost
- * - Difficulty increases after 3+ consecutive correct answers on same concept
- * - Mistaken concepts are reintroduced within 5–10 questions
- *
- * Future extension point: Replace this with a real API client
- * that fetches questions from a backend service.
- */
-
 import type {
     ConceptID,
     Difficulty,
@@ -29,7 +10,6 @@ import type {
 import { getProfile } from "@/services/LearningProfileService";
 import { recommendConcepts } from "@/services/MLService";
 
-// ─── ML Recommender (server-side) ───────────────────────────────────────────
 
 type MlCache = {
     userId: string;
@@ -60,7 +40,7 @@ function getMlWeaknessByConcept(
 
     const weakness: Record<ConceptID, number> = {};
 
-    // Preferred: use calibrated probabilities if provided
+    
     if (mlCache.pCorrectByConcept) {
         for (const cid of conceptIds) {
             const p = mlCache.pCorrectByConcept[cid];
@@ -69,7 +49,7 @@ function getMlWeaknessByConcept(
         }
     }
 
-    // Fallback: derive a 0..1 weakness score from rank position
+    
     if (Object.keys(weakness).length === 0) {
         const ranked = mlCache.rankedConcepts;
         const n = ranked.length;
@@ -116,7 +96,6 @@ function maybeRefreshMlCache(conceptIds: ConceptID[]): void {
     })();
 }
 
-// ─── Static MCQ Question Pool ────────────────────────────────────────────────
 
 const MCQ_POOL: MCQQuestion[] = [
     {
@@ -287,6 +266,234 @@ const MCQ_POOL: MCQQuestion[] = [
     },
 ];
 
+type SupportedLang = "en" | "ro";
+
+function normalizeLang(lang?: string): SupportedLang {
+    return lang?.toLowerCase().startsWith("ro") ? "ro" : "en";
+}
+
+const MCQ_TEXT_BY_LANG: Record<
+    SupportedLang,
+    Record<string, { question: string; options: string[] }>
+> = {
+    en: {},
+    ro: {
+        "mcq-1": {
+            question:
+                "Dacă ratele dobânzilor cresc, ce se întâmplă de obicei cu prețurile obligațiunilor?",
+            options: ["Cresc", "Scad", "Rămân la fel", "Devine volatil"],
+        },
+        "mcq-2": {
+            question: "Ce ajută în principal diversificarea să reducă?",
+            options: [
+                "Obligația fiscală",
+                "Riscul nesistematic",
+                "Inflația",
+                "Costurile de tranzacționare",
+            ],
+        },
+        "mcq-3": {
+            question:
+                "Ce situație financiară arată veniturile, cheltuielile și profitul pe o perioadă?",
+            options: [
+                "Bilanț",
+                "Situația fluxurilor de numerar",
+                "Contul de profit și pierdere",
+                "Situația capitalurilor proprii",
+            ],
+        },
+        "mcq-4": {
+            question: "La ce este folosită „Regula lui 72” pentru a estima?",
+            options: [
+                "Timpul necesar pentru a dubla o investiție",
+                "Pierderea maximă a portofoliului",
+                "Alocarea optimă a activelor",
+                "Deduceri fiscale",
+            ],
+        },
+        "mcq-5": {
+            question: "Un raport P/E compară prețul unei acțiuni cu:",
+            options: [
+                "Venituri",
+                "Câștigul pe acțiune (EPS)",
+                "Dividende",
+                "Valoarea contabilă",
+            ],
+        },
+        "mcq-6": {
+            question:
+                "Care tip de fond are de obicei cele mai mici comisioane?",
+            options: [
+                "Fond de hedging",
+                "Fond mutual",
+                "Fond index",
+                "Fond de private equity",
+            ],
+        },
+        "mcq-7": {
+            question: "Ce înseamnă PIB (GDP)?",
+            options: [
+                "Produs Intern Brut",
+                "Prețuri interne generale",
+                "Procentajul cererii de creștere",
+                "Profit brut al cererii",
+            ],
+        },
+        "mcq-8": {
+            question: "O „piață bear” este de obicei definită ca:",
+            options: [
+                "O piață care crește cu 20% sau mai mult",
+                "O piață care scade cu 20% sau mai mult",
+                "O piață cu volatilitate ridicată",
+                "O piață cu volum scăzut de tranzacționare",
+            ],
+        },
+        "mcq-9": {
+            question: "Care activ este considerat în general cel mai sigur?",
+            options: [
+                "Obligațiuni corporative",
+                "Acțiuni",
+                "Bonuri de trezorerie ale SUA",
+                "Criptomonedă",
+            ],
+        },
+        "mcq-10": {
+            question: "Dobânda compusă diferă de dobânda simplă deoarece:",
+            options: [
+                "Folosește o rată mai mică",
+                "Este calculată doar anual",
+                "Generează dobândă și peste dobânda acumulată anterior",
+                "Se aplică doar conturilor de economii",
+            ],
+        },
+        "mcq-11": {
+            question: "Ce înseamnă ETF?",
+            options: [
+                "Fond de transfer electronic",
+                "Fond tranzacționat la bursă",
+                "Fond fiduciar de acțiuni",
+                "Depunere fiscală estimată",
+            ],
+        },
+        "mcq-12": {
+            question: "Inflația tinde să facă ce cu puterea de cumpărare?",
+            options: [
+                "Să crească",
+                "Să scadă",
+                "Să rămână neschimbată",
+                "Să fluctueze aleatoriu",
+            ],
+        },
+    },
+};
+
+function localizeMCQ(mcq: MCQQuestion, lang?: string): MCQQuestion {
+    const normalized = normalizeLang(lang);
+    if (normalized === "en") return mcq;
+    const tr = MCQ_TEXT_BY_LANG[normalized][mcq.id];
+    if (!tr) return mcq;
+    return { ...mcq, question: tr.question, options: tr.options };
+}
+
+type NumericTemplateId =
+    | "num-compound-interest"
+    | "num-simple-interest"
+    | "num-rule-of-72"
+    | "num-future-value-annuity";
+
+function formatYears(years: number, lang: SupportedLang): string {
+    if (lang === "ro") return years === 1 ? "1 an" : `${years} ani`;
+    return years === 1 ? "1 year" : `${years} years`;
+}
+
+function formatNumericQuestionText(
+    templateId: NumericTemplateId,
+    params: Record<string, number>,
+    lang?: string,
+): string {
+    const normalized = normalizeLang(lang);
+
+    switch (templateId) {
+        case "num-compound-interest": {
+            const principal = params.principal;
+            const rate = params.rate;
+            const years = params.years;
+            if (normalized === "ro") {
+                return `Investești $${principal.toLocaleString()} la o dobândă anuală compusă de ${rate}%. Câți bani vei avea după ${formatYears(
+                    years,
+                    normalized,
+                )}?`;
+            }
+            return `You invest $${principal.toLocaleString()} at ${rate}% annual compound interest. How much will you have after ${formatYears(
+                years,
+                normalized,
+            )}?`;
+        }
+        case "num-simple-interest": {
+            const principal = params.principal;
+            const rate = params.rate;
+            const years = params.years;
+            if (normalized === "ro") {
+                return `Depui $${principal.toLocaleString()} într-un cont care oferă dobândă simplă de ${rate}% pe an. Care este suma totală după ${formatYears(
+                    years,
+                    normalized,
+                )}?`;
+            }
+            return `You deposit $${principal.toLocaleString()} in an account earning ${rate}% simple interest per year. What is the total amount after ${formatYears(
+                years,
+                normalized,
+            )}?`;
+        }
+        case "num-rule-of-72": {
+            const rate = params.rate;
+            if (normalized === "ro") {
+                return `Folosind Regula lui 72, aproximativ câți ani sunt necesari pentru a-ți dubla banii la un randament anual de ${rate}%? (Rotunjește la cel mai apropiat număr întreg)`;
+            }
+            return `Using the Rule of 72, approximately how many years will it take to double your money at a ${rate}% annual return? (Round to the nearest whole number)`;
+        }
+        case "num-future-value-annuity": {
+            const monthly = params.monthly;
+            const rate = params.rate;
+            const years = params.years;
+            if (normalized === "ro") {
+                return `Economisești $${monthly.toLocaleString()} pe lună timp de ${formatYears(
+                    years,
+                    normalized,
+                )} la o dobândă anuală de ${rate}% (capitalizare lunară). Care este valoarea viitoare totală?`;
+            }
+            return `You save $${monthly.toLocaleString()} per month for ${formatYears(
+                years,
+                normalized,
+            )} at ${rate}% annual interest (compounded monthly). What is the total future value?`;
+        }
+        default:
+            return normalized === "ro"
+                ? "Întrebare numerică"
+                : "Numeric question";
+    }
+}
+
+export function localizeResolvedQuestion(
+    question: ResolvedQuestion,
+    lang?: string,
+): ResolvedQuestion {
+    if (question.type === "mcq") {
+        return localizeMCQ(question, lang);
+    }
+
+    const templateId = question.templateId as NumericTemplateId | undefined;
+    if (!templateId || !question.params) return question;
+
+    return {
+        ...question,
+        questionText: formatNumericQuestionText(
+            templateId,
+            question.params,
+            lang,
+        ),
+    };
+}
+
 // ─── Numeric Question Templates ──────────────────────────────────────────────
 
 /** Helper to get a random integer between min and max (inclusive) */
@@ -312,7 +519,13 @@ const NUMERIC_TEMPLATES: GeneratedQuestionTemplate[] = [
             const years = randInt(1, 10);
             const answer = round2(principal * Math.pow(1 + rate / 100, years));
             return {
-                questionText: `You invest $${principal.toLocaleString()} at ${rate}% annual compound interest. How much will you have after ${years} year${years > 1 ? "s" : ""}?`,
+                templateId: "num-compound-interest",
+                params: { principal, rate, years },
+                questionText: formatNumericQuestionText(
+                    "num-compound-interest",
+                    { principal, rate, years },
+                    "en",
+                ),
                 correctAnswer: answer,
                 tolerance: answer * 0.01,
             };
@@ -331,7 +544,13 @@ const NUMERIC_TEMPLATES: GeneratedQuestionTemplate[] = [
             const interest = round2(principal * (rate / 100) * years);
             const total = principal + interest;
             return {
-                questionText: `You deposit $${principal.toLocaleString()} in an account earning ${rate}% simple interest per year. What is the total amount after ${years} year${years > 1 ? "s" : ""}?`,
+                templateId: "num-simple-interest",
+                params: { principal, rate, years },
+                questionText: formatNumericQuestionText(
+                    "num-simple-interest",
+                    { principal, rate, years },
+                    "en",
+                ),
                 correctAnswer: total,
                 tolerance: total * 0.01,
             };
@@ -347,7 +566,13 @@ const NUMERIC_TEMPLATES: GeneratedQuestionTemplate[] = [
             const rate = randInt(2, 12);
             const answer = round2(72 / rate);
             return {
-                questionText: `Using the Rule of 72, approximately how many years will it take to double your money at a ${rate}% annual return? (Round to the nearest whole number)`,
+                templateId: "num-rule-of-72",
+                params: { rate },
+                questionText: formatNumericQuestionText(
+                    "num-rule-of-72",
+                    { rate },
+                    "en",
+                ),
                 correctAnswer: Math.round(answer),
                 tolerance: 1,
             };
@@ -367,7 +592,13 @@ const NUMERIC_TEMPLATES: GeneratedQuestionTemplate[] = [
             const n = years * 12;
             const fv = round2(monthly * ((Math.pow(1 + r, n) - 1) / r));
             return {
-                questionText: `You save $${monthly} per month for ${years} years at ${rate}% annual interest (compounded monthly). What is the total future value?`,
+                templateId: "num-future-value-annuity",
+                params: { monthly, rate, years },
+                questionText: formatNumericQuestionText(
+                    "num-future-value-annuity",
+                    { monthly, rate, years },
+                    "en",
+                ),
                 correctAnswer: fv,
                 tolerance: fv * 0.01,
             };
@@ -375,7 +606,6 @@ const NUMERIC_TEMPLATES: GeneratedQuestionTemplate[] = [
     },
 ];
 
-// ─── All Questions Pool (for scoring) ────────────────────────────────────────
 
 type ScoredQuestion = {
     resolve: () => ResolvedQuestion;
@@ -383,7 +613,6 @@ type ScoredQuestion = {
     difficulty: Difficulty;
 };
 
-/** Build a combined pool of all available questions for scoring */
 function getAllQuestions(): ScoredQuestion[] {
     const pool: ScoredQuestion[] = [];
 
@@ -406,6 +635,8 @@ function getAllQuestions(): ScoredQuestion[] {
                     correctAnswer: generated.correctAnswer,
                     tolerance:
                         generated.tolerance ?? generated.correctAnswer * 0.01,
+                    templateId: generated.templateId,
+                    params: generated.params,
                     conceptId: template.conceptId,
                     difficulty: template.difficulty,
                 };
@@ -431,10 +662,6 @@ const WEIGHTS = {
 
 /**
  * Scores a question based on the user's learning profile.
- *
- * score = mistakeWeight + recencyWeight + difficultyAdjustment + randomness
- *
- * Higher scores = more likely to be selected.
  */
 function scoreQuestion(
     question: ScoredQuestion,
@@ -455,22 +682,22 @@ function scoreQuestion(
             score += errorRate * WEIGHTS.MISTAKE;
         }
 
-        // Recency weight: boost concepts not seen recently
+        
         const timeSinceLastSeen = Date.now() - stats.lastSeenTimestamp;
         const minutesSinceLastSeen = timeSinceLastSeen / 60000;
         score += Math.min(minutesSinceLastSeen / 10, 1) * WEIGHTS.RECENCY;
 
-        // Difficulty adjustment: increase difficulty after 3+ correct in a row
+        
         if (stats.correctCount >= 3 && stats.incorrectCount === 0) {
-            // User has mastered this concept at current difficulty — prefer harder
+            
             if (difficulty === "hard") {
                 score += WEIGHTS.DIFFICULTY_ADJUSTMENT;
             } else if (difficulty === "medium") {
                 score += WEIGHTS.DIFFICULTY_ADJUSTMENT * 0.5;
             }
-            // Easy questions for mastered concepts get no difficulty bonus
+            
         } else if (stats.incorrectCount > 0) {
-            // User is struggling — prefer same or easier difficulty
+            
             if (difficulty === "easy") {
                 score += WEIGHTS.DIFFICULTY_ADJUSTMENT * 0.8;
             } else if (difficulty === "medium") {
@@ -479,7 +706,7 @@ function scoreQuestion(
         }
     }
 
-    // Add controlled randomness to prevent purely deterministic selection
+    
     score += Math.random() * WEIGHTS.BASE_RANDOM;
 
     return score;
@@ -496,19 +723,14 @@ function normalize01(values: number[]): { min: number; max: number } {
     return { min, max };
 }
 
-// ─── Question Selection Logic ────────────────────────────────────────────────
 
-/** Tracks the ID of the last served question to prevent immediate repeats */
 let lastQuestionId: string | null = null;
 
-/** Counter for reintroducing mistaken concepts */
+
 let questionsSinceMistake = 0;
 let pendingMistakeConcepts: ConceptID[] = [];
 
-/**
- * Adds a concept to the pending mistake queue for reintroduction.
- * Called externally when a user answers incorrectly.
- */
+
 export function flagConceptForRevisit(conceptId: ConceptID): void {
     if (!pendingMistakeConcepts.includes(conceptId)) {
         pendingMistakeConcepts.push(conceptId);
@@ -516,9 +738,6 @@ export function flagConceptForRevisit(conceptId: ConceptID): void {
 }
 
 /**
- * Returns a single resolved question ready for display.
- * Uses the mistake-driven algorithm to bias selection.
- *
  * Algorithm:
  * 1. Check if a mistaken concept needs reintroduction (every 5–10 questions)
  * 2. Score all available questions against the learning profile
@@ -529,7 +748,7 @@ export function getNextQuestion(): ResolvedQuestion {
     const profile = getProfile();
     const allQuestions = getAllQuestions();
 
-    // Kick off (non-blocking) ML refresh so the next questions can use it.
+    
     const allConceptIds = Array.from(
         new Set(allQuestions.map((q) => q.conceptId)),
     );
@@ -537,7 +756,7 @@ export function getNextQuestion(): ResolvedQuestion {
 
     questionsSinceMistake += 1;
 
-    // Check if we should force-reintroduce a mistaken concept
+    
     if (
         pendingMistakeConcepts.length > 0 &&
         questionsSinceMistake >= 5 + Math.floor(Math.random() * 6) // 5–10 questions
@@ -557,7 +776,7 @@ export function getNextQuestion(): ResolvedQuestion {
         }
     }
 
-    // Score all questions (heuristic)
+    
     const heuristicScored = allQuestions.map((q) => ({
         question: q,
         heuristicScore: scoreQuestion(q, profile),
@@ -565,7 +784,7 @@ export function getNextQuestion(): ResolvedQuestion {
 
     const mlWeaknessByConcept = getMlWeaknessByConcept(allConceptIds);
 
-    // Fallback: preserve original behavior when ML isn't available yet.
+    // Fallback
     const scored = !mlWeaknessByConcept
         ? heuristicScored.map((s) => ({
               question: s.question,
@@ -589,22 +808,22 @@ export function getNextQuestion(): ResolvedQuestion {
               });
           })();
 
-    // Sort by score descending
+    
     scored.sort((a, b) => b.score - a.score);
 
-    // Pick from top 5 candidates (weighted by score)
+    
     const topN = scored.slice(0, Math.min(5, scored.length));
     const totalScore = topN.reduce((sum, s) => sum + s.score, 0);
 
     let selected: ScoredQuestion;
 
     if (totalScore === 0) {
-        // Fallback: random selection
+        // Fallback
         selected = topN[randInt(0, topN.length - 1)].question;
     } else {
-        // Weighted random selection from top candidates
+        
         let roll = Math.random() * totalScore;
-        selected = topN[topN.length - 1].question; // default to last
+        selected = topN[topN.length - 1].question;
 
         for (const entry of topN) {
             roll -= entry.score;
@@ -617,7 +836,7 @@ export function getNextQuestion(): ResolvedQuestion {
 
     let resolved = selected.resolve();
 
-    // Re-roll once if same as last question
+    
     if (resolved.id === lastQuestionId && allQuestions.length > 1) {
         const fallback = topN.find(
             (s) => s.question.resolve().id !== lastQuestionId,
@@ -631,14 +850,21 @@ export function getNextQuestion(): ResolvedQuestion {
     return resolved;
 }
 
-/**
- * Returns a batch of resolved questions for the feed.
- * Used to populate the initial feed and load more questions on scroll.
- */
+
 export function getQuestionBatch(count: number = 10): ResolvedQuestion[] {
     const questions: ResolvedQuestion[] = [];
     for (let i = 0; i < count; i++) {
         questions.push(getNextQuestion());
     }
     return questions;
+}
+
+
+export function getQuestionBatchLocalized(
+    count: number = 10,
+    lang?: string,
+): ResolvedQuestion[] {
+    return getQuestionBatch(count).map((q) =>
+        localizeResolvedQuestion(q, lang),
+    );
 }

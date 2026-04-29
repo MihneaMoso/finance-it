@@ -14,7 +14,9 @@ import {
     getHeartsState,
 } from "@/services/HeartsService";
 import { recordAnswerAndSync } from "@/services/LearningProfileService";
+import { completeNode } from "@/services/LessonService";
 import { getSimulationById } from "@/services/SimulationService";
+import { syncNextLessonWidget } from "@/services/WidgetSyncService";
 import type {
     HeartsState,
     Simulation,
@@ -91,11 +93,25 @@ export default function SimulationScreen() {
         [sim, step, user?.id],
     );
 
-    const onContinue = useCallback(() => {
+    const onContinue = useCallback(async () => {
         if (!steps.length) return;
 
         const isLast = stepIndex >= steps.length - 1;
         if (isLast) {
+            if (simulationId) {
+                try {
+                    await completeNode(String(simulationId));
+
+                    // Keep widget state in sync with completion.
+                    void syncNextLessonWidget();
+                } catch (err) {
+                    // Never trap the user if persistence fails.
+                    console.warn(
+                        "Failed to persist simulation completion",
+                        err,
+                    );
+                }
+            }
             Alert.alert(t((s) => s.learn.completed));
             router.back();
             return;
@@ -103,7 +119,7 @@ export default function SimulationScreen() {
 
         setStepIndex((i) => Math.min(i + 1, steps.length - 1));
         setStepAnswered(false);
-    }, [router, stepIndex, steps.length]);
+    }, [router, simulationId, stepIndex, steps.length]);
 
     if (!sim || !step) {
         return (

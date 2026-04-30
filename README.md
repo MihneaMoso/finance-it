@@ -19,7 +19,7 @@ The app's interface is organized as follows:
 
 ## Our technology stack:
  - **For the frontend:**
-   - Expo with React for the mobile and web app
+   - Expo with React and TypeScript for the mobile and web app
    - I18next for the internationalization of languages
   
  - **For the backend:**
@@ -27,6 +27,7 @@ The app's interface is organized as follows:
    - Clerk for authentication
    - Python with Skicit-Learn for training the model
 
-### Links:
+## Links:
  - Pitch: https://drive.google.com/file/d/1beQRFy7EXuzrnLRcDdW_q5CidtIZXKZz/view?usp=sharing
- - Demo: ``
+ - Demo: https://drive.google.com/file/d/1wt0SZK_Hxs0l6JsJCDzg5aWxvpJN2VfX/view?usp=sharing
+ - App download: ``

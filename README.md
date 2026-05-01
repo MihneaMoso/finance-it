@@ -30,4 +30,4 @@ The app's interface is organized as follows:
 ## Links:
  - Pitch: https://drive.google.com/file/d/1beQRFy7EXuzrnLRcDdW_q5CidtIZXKZz/view?usp=sharing
  - Demo: https://drive.google.com/file/d/1wt0SZK_Hxs0l6JsJCDzg5aWxvpJN2VfX/view?usp=sharing
- - App download: ``
+ - App download: https://expo.dev/artifacts/eas/8Jdg1Zb3f7BdTZSs9oDYGa.apk

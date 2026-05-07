@@ -1,21 +1,3 @@
-/**
- * Home Feed Screen — Core of the Finance-IT MVP.
- *
- * Features:
- * - TikTok-style full-screen vertical scrolling with snap-to-item paging
- * - Each item is a finance question card (MCQ or numeric)
- * - Questions loaded from QuestionService
- * - Infinite-feel feed: loads more questions when user approaches the end
- * - 60fps smooth scrolling, no visible scrollbars
- *
- * Feed paging logic:
- * - Initial batch of 10 questions is loaded on mount
- * - When the user scrolls past 70% of loaded questions, another batch is appended
- * - This creates an "infinite scroll" effect without a real backend
- *
- * Future extension point: Replace getQuestionBatch() calls with
- * API requests to a real backend service.
- */
 
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useRef, useState } from "react";
